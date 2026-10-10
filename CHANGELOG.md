@@ -8,4 +8,6 @@ All notable changes to this project are documented here. The format follows
 
 ## [0.1.0]
 
-- First release.
+- `strtobool` with optional default, matching that ignores case and surrounding space.
+- `getenv_bool` to read a flag from the environment, loud on a set-but-invalid value.
+- `BoolRules` for a custom truthy/falsy vocabulary.

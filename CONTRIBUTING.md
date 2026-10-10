@@ -5,7 +5,7 @@ Thanks for taking the time. This project keeps a small, predictable shape.
 ## Setup
 
 ```
-pip install -e ".[dev]"
+pip install -r requirements-dev.txt
 ```
 
 ## Before you open a pull request
