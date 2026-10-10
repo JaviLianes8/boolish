@@ -29,6 +29,7 @@ Repository = "https://github.com/JaviLianes8/strtobool"
 Issues = "https://github.com/JaviLianes8/strtobool/issues"
 Changelog = "https://github.com/JaviLianes8/strtobool/blob/main/CHANGELOG.md"
 LinkedIn = "https://www.linkedin.com/in/jlianes/"
+Funding = "https://buymeacoffee.com/jlianesglrs"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/strtobool"]
