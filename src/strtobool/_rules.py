@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from dataclasses import dataclass
 
 
@@ -9,12 +10,13 @@ from dataclasses import dataclass
 class BoolRules:
     """Case-insensitive vocabularies for truthy and falsy strings.
 
-    Words are normalised (trimmed and lower-cased) on construction, so a value only
-    needs to match one of them once it has been stripped and lower-cased too.
+    Pass any collection of words; they are normalised (trimmed and lower-cased) on
+    construction, so a value only needs to match one once it has been stripped and
+    lower-cased too.
     """
 
-    true: frozenset[str] = frozenset({"y", "yes", "t", "true", "on", "1"})
-    false: frozenset[str] = frozenset({"n", "no", "f", "false", "off", "0"})
+    true: Collection[str] = frozenset({"y", "yes", "t", "true", "on", "1"})
+    false: Collection[str] = frozenset({"n", "no", "f", "false", "off", "0"})
 
     def __post_init__(self) -> None:
         true = frozenset(word.strip().lower() for word in self.true)

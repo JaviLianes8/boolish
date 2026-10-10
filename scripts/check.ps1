@@ -3,5 +3,5 @@ $ErrorActionPreference = "Stop"
 
 ruff format --check src tests
 ruff check src tests
-mypy src
+mypy src tests
 pytest
