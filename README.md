@@ -54,10 +54,10 @@ most projects ended up writing by hand.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
 
 ## Links
 
-- Website — https://lianes8studio.com
-- GitHub — https://github.com/JaviLianes8
-- LinkedIn — https://www.linkedin.com/in/jlianes/
+- Website: https://lianes8studio.com
+- GitHub: https://github.com/JaviLianes8
+- LinkedIn: https://www.linkedin.com/in/jlianes/
