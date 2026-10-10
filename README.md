@@ -1,4 +1,4 @@
-# strtobool
+# boolish
 
 Parse a string into a boolean. A typed, dependency-free stand-in for
 `distutils.util.strtobool`, which was removed from the standard library in Python 3.12.
@@ -6,13 +6,13 @@ Parse a string into a boolean. A typed, dependency-free stand-in for
 ## Install
 
 ```
-pip install strtobool
+pip install boolish
 ```
 
 ## Usage
 
 ```python
-from strtobool import strtobool
+from boolish import strtobool
 
 strtobool("yes")     # True
 strtobool("Off")     # False
@@ -30,7 +30,7 @@ Read a flag straight from the environment. A missing variable falls back to the
 default; a set-but-nonsense value raises, so a misconfigured flag fails loudly:
 
 ```python
-from strtobool import getenv_bool
+from boolish import getenv_bool
 
 getenv_bool("ENABLE_CACHE", False)
 ```
@@ -38,7 +38,7 @@ getenv_bool("ENABLE_CACHE", False)
 Bring your own vocabulary:
 
 ```python
-from strtobool import BoolRules, strtobool
+from boolish import BoolRules, strtobool
 
 spanish = BoolRules(true={"sí", "verdadero"}, false={"no", "falso"})
 strtobool("SÍ", rules=spanish)   # True

@@ -1,6 +1,6 @@
 import pytest
 
-from strtobool import getenv_bool
+from boolish import getenv_bool
 
 
 def test_reads_and_parses_the_variable(monkeypatch: pytest.MonkeyPatch) -> None:

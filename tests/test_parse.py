@@ -1,6 +1,6 @@
 import pytest
 
-from strtobool import BoolRules, strtobool
+from boolish import BoolRules, strtobool
 
 
 @pytest.mark.parametrize("value", ["y", "yes", "t", "true", "on", "1"])

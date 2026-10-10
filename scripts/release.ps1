@@ -3,8 +3,8 @@
 $ErrorActionPreference = "Stop"
 
 try {
-    Invoke-WebRequest -UseBasicParsing "https://pypi.org/pypi/strtobool/json" | Out-Null
-    throw "The name 'strtobool' already exists on PyPI. Choose another before publishing."
+    Invoke-WebRequest -UseBasicParsing "https://pypi.org/pypi/boolish/json" | Out-Null
+    throw "The name 'boolish' already exists on PyPI. Choose another before publishing."
 } catch [System.Net.WebException], [Microsoft.PowerShell.Commands.HttpResponseException] {
     if ($_.Exception.Response.StatusCode.value__ -ne 404) { throw }
 }

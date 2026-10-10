@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TypeVar, overload
 
-from strtobool._rules import DEFAULT, BoolRules
+from boolish._rules import DEFAULT, BoolRules
 
 T = TypeVar("T")
 

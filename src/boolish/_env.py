@@ -5,8 +5,8 @@ from __future__ import annotations
 import os
 from typing import TypeVar, overload
 
-from strtobool._parse import strtobool
-from strtobool._rules import DEFAULT, BoolRules
+from boolish._parse import strtobool
+from boolish._rules import DEFAULT, BoolRules
 
 T = TypeVar("T")
 
