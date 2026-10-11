@@ -4,14 +4,14 @@ build-backend = "hatchling.build"
 
 [project]
 name = "boolish"
-version = "0.1.0"
+version = "0.2.0"
 description = "Typed, dependency-free replacement for the strtobool removed from the standard library"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Javier Lianes", email = "javier@lianes8studio.com" }]
-keywords = []
+keywords = ["bool", "boolean", "strtobool", "parse", "environment", "config", "cli"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -19,6 +19,9 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = []
+
+[project.scripts]
+boolish = "boolish._cli:main"
 
 [project.optional-dependencies]
 dev = ["ruff", "mypy", "pytest", "build", "twine"]
