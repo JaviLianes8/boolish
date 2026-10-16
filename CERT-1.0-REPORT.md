@@ -9,8 +9,8 @@ Progress:
 - [x] Contract, fuzz and author mutation round (items 6, 9, 18)
 - [x] Docs: README, GUIDE, CHANGELOG (items 11, 12)
 - [x] Packaging, e2e and upgrade from PyPI 0.1.0, author pass (items 8, 13, 14)
-- [ ] Every interpreter on this PC (item 10)
-- [ ] Five QA lenses report PASS (item 19)
+- [x] Every interpreter on this PC (item 10)
+- [x] Five QA lenses report PASS (item 19)
 - [ ] Independent reviewer (item 16)
 - [ ] Gates (item 15)
 - [ ] PR open and trace guard CLEAN (item 17); merge and publish left to the maintainer
@@ -128,3 +128,56 @@ so the redundant code went and a contract now pins the property that makes it re
 | L05 | custom words ignored | `_cli.py` | killed | `tests/test_cli.py::test_custom_words` |
 | L06 | closed pipe not redirected | `_cli.py` | killed | `tests/test_cli.py::test_a_closed_output_pipe_keeps_the_exit_code` |
 | L07 | lenient flag inverted | `_cli.py` | killed | `tests/test_cli.py::test_lenient_folds_accents` |
+
+## Supported Pythons (item 10)
+
+The wheel built from a fresh clone (2a445e9), installed in a clean venv per interpreter on
+this PC, the suite run from the extracted sdist with `src` removed (`-o pythonpath=`),
+imports confirmed from site-packages; repeated by lens d at b6466e1:
+
+| Python | Author pass (2a445e9) | Lens d (b6466e1) |
+| --- | --- | --- |
+| 3.10.19 | 296 passed, 3 skipped | 313 passed, 17 skipped |
+| 3.11.5 | 296 passed, 3 skipped | 313 passed, 17 skipped |
+| 3.12.12 | 295 passed, 4 skipped | 312 passed, 18 skipped |
+| 3.13.2 | 295 passed, 4 skipped | 312 passed, 18 skipped |
+| 3.14.2 | 295 passed, 4 skipped | 312 passed, 18 skipped |
+| 3.14.2 free-threaded | 295 passed, 4 skipped | 312 passed, 18 skipped |
+
+Skips: the three end-to-end tests without `BOOLISH_E2E=1` (run separately: 3 passed),
+the live `distutils` test from 3.12 on, and in lens d's run the source tests without the
+fetched copies. 3.9.25 is refused by `requires-python`; 3.8 is below it.
+
+## Packaging and end-to-end (items 8, 13, 14)
+
+`tests/test_e2e.py` (`BOOLISH_E2E=1`) builds both archives, runs `twine check --strict`,
+checks the wheel holds only the package, `py.typed` and LICENSE and the sdist only the
+project's own files plus the sources manifest, installs the wheel in a clean venv and
+drives the console script and `python -m boolish` by subprocess (outputs, stderr, exit
+codes 0, 1 and 2, `--version`), and upgrades boolish 0.1.0 from PyPI in place (`pip
+check` clean). Lens d repeated all of it independently, added a `mypy --strict` consumer
+of every public name against the installed wheel and compared about 130 probes between
+0.1.0 and 1.0.0; every difference is in CHANGELOG 1.0.0's upgrade section.
+
+## Independent QA lenses (item 19)
+
+Each lens was a fresh, independent review that read the certification checklist first,
+ran things rather than reading them, worked in its own clone and reported back only.
+
+| Lens | Round | Head | Verdict | Findings and outcome |
+| --- | --- | --- | --- | --- |
+| a. API and docs | 1 | 2a445e9 | FAIL (3 medium, 4 low, 2 info) | a `--help` example failed; `--lenient` help promised numbers; the folded-collision refusal and the 0.1.0 `bytes` behaviour missing from the upgrade notes; 0.2.0-only changes mixed into the 1.0.0 list; folded sets visible through `dataclasses.fields`; docstring examples leaning on module globals; the default sentinel printed as an address and functions reporting private modules; help wider than 80 columns. Fixed in 3ec60e4 |
+| a | 2 | 3ec60e4 | PASS (1 low) | all nine fixed; one help line misaligned, fixed in be46d9f |
+| b. Correctness and ground truth | 1 | be46d9f | PASS | 82,272 inputs against the stdlib function on 3.10 and 3.11 with 0 mismatches; 12 tools (adding pydantic, marshmallow, environs and str2bool) with 0 contradictions; MULTILINGUAL words checked against CLDR and dictionary entries; `oracles.json` re-captured with 0 differences; manifest hashes match |
+| c. Adversarial and robustness | 1 | be46d9f | FAIL (1 high, 3 medium, 3 low, 1 info) | a closed stdout or stderr turned the exit code into 1; NFKD-expanding input made lenient matching take 10 s for 10^6 characters; overriding subclasses and mocks faking `__class__` broke calls; control characters from type names and argparse; `--help` crashed on cp932; `getenv_bool` messages showed part of the value. About 800,000 fuzz cases otherwise clean, threads clean on 3.14t. Fixed in 5ab7223 |
+| c | 2 | 5ab7223 | FAIL (2 low) | all eight fixed; 750,000 seeded cases prove the early stop never changes an answer; the chained inner error still held a preview of the variable's value; a metaclass `__name__` property broke the type name. Fixed in b6466e1 |
+| c | 3 | b6466e1 | PASS | both fixed; `getenv_bool` matches `strtobool` on every probe |
+| d. Packaging and real e2e | 1 | b6466e1 | PASS (1 low, 2 info) | interpreter matrix above, archives, metadata, CLI, typed consumer, upgrade; two 0.1.0 differences (overriding `str` subclasses, objects with `strip`) missing from the upgrade notes; release script nits. Fixed in f516082 and 7604af4 |
+| d | 2 | f516082 | PASS | both confirmed against PyPI 0.1.0 |
+| e. Contract strength (blind) | 1 | 7604af4 | FAIL | 83 mutations: 71 killed, 4 equivalent, 8 survived (lenient limit one short, lying float `__eq__`, the non-string size in environment errors, the clash listing bound, the CLI default vocabulary, the usage-error cut and its ellipsis, the encoding fallback). Contracts in `tests/test_contract_strength.py` (2268829), each survivor re-applied and killed |
+| e | 2 | 2268829 | PASS | the eight re-applied survivors killed; `src` unchanged since round 1, so 15 fresh mutations on the new contracts' targets: all killed |
+
+Equivalent mutations argued by lens e: the chunk size (decomposition is per character and
+every reordered mark is dropped), the ASCII fast path (NFKD leaves ASCII unchanged), passing
+a `str` subclass on (both matchers call `str.strip` first), and the `bool` branch (the
+integer path gives the same answer).
