@@ -1,5 +1,7 @@
 # boolish
 
+[![Lianes8 Certified](https://lianes8studio.com/certified/lianes8-certified-badge.svg)](https://lianes8studio.com/certified)
+
 Read loose, human boolean-ish strings and values as a real `bool`. A typed,
 dependency-free stand-in for `distutils.util.strtobool`, which Python deprecated in 3.10
 and removed in 3.12 ([PEP 632](https://peps.python.org/pep-0632/)), plus a broader

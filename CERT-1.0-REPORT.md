@@ -11,9 +11,44 @@ Progress:
 - [x] Packaging, e2e and upgrade from PyPI 0.1.0, author pass (items 8, 13, 14)
 - [x] Every interpreter on this PC (item 10)
 - [x] Five QA lenses report PASS (item 19)
-- [ ] Independent reviewer (item 16)
-- [ ] Gates (item 15)
-- [ ] PR open and trace guard CLEAN (item 17); merge and publish left to the maintainer
+- [x] Independent reviewer (item 16)
+- [x] Gates (item 15)
+- [x] PR #2 open and trace guard CLEAN (item 17); merge and publish left to the maintainer
+
+## Scorecard (at the head of PR #2)
+
+| # | Item | Verdict | Evidence |
+| --- | --- | --- | --- |
+| 1 | API reviewed for stability | PASS | every 0.1.0 name and signature kept; `CLASSIC`, `NotBooleanError.variable`, `python -m boolish` added; every change in CHANGELOG 1.0.0, compared side by side with PyPI 0.1.0 by lenses a and d (about 130 probes) |
+| 2 | `__all__` exact | PASS | twelve names, nothing else public (`tests/test_contract.py`) |
+| 3 | Docstrings with runnable examples | PASS | every public function and class runs its own example with empty globals; constants and `BoolLike` in the package docstring; README and GUIDE `pycon` blocks and `console` transcripts and every `--help` example run in `tests/test_docs.py` and `tests/test_cli.py` |
+| 4 | Typed end to end | PASS | `mypy --strict src tests` clean; `py.typed` shipped; strict consumer of every public name against the installed wheel (lens d) |
+| 5 | Typed, documented, safe errors | PASS | GUIDE error table; messages show at most 32 characters, sizes for huge integers, escaped type names, and only the length of environment values |
+| 6 | Contract asserts the full promise | PASS | 323 tests: promises per public name, ground truth, fuzz, hostile input, CLI, and the contracts from the author, lens e and reviewer mutation rounds |
+| 7 | Real ground truth | PASS | seven real parsers' answers captured from the tools themselves; CPython 3.11, YAML 1.1 and 1.2.2, CLDR and PEP 632 fetched with manifest; lens b re-derived it all with twelve tools and 82,272 stdlib comparisons |
+| 8 | Real e2e incl. PyPI upgrade | PASS | `BOOLISH_E2E=1`: archives, installed wheel by subprocess, upgrade in place from PyPI 0.1.0 (author, lens d, reviewer) |
+| 9 | Seeded fuzz, no crash, hang or blow-up | PASS | seeded fuzz, every-code-point folding check and linear-time tests in the suite; lens c: about 1.55 million fuzz cases and scaling to 10^7 characters |
+| 10 | Every interpreter on this PC | PASS | 3.10.19, 3.11.5, 3.12.12, 3.13.2, 3.14.2 and 3.14.2t from the installed wheel (author and lens d) |
+| 11 | README | PASS | `twine check --strict`; absolute links; problem, verified why, install, quick start, GUIDE and CHANGELOG links |
+| 12 | CHANGELOG dated 1.0.0 | PASS | `## [1.0.0] - 2026-10-16` with the stable surface and an upgrade list from 0.1.0 |
+| 13 | pyproject | PASS | 1.0.0 (one source), Production/Stable, 3.10 to 3.14, MIT, Homepage/Source/Issues/Changelog, keywords, `dependencies = []` |
+| 14 | sdist and wheel contents | PASS | wheel: package, `py.typed`, LICENSE; sdist: source, tests, fixtures, sources manifest, scripts, docs; no fetched third-party copy |
+| 15 | Gates exit 0 alone | PASS | `ruff format --check .`, `ruff check .`, `mypy --strict src`, `pytest` on a fresh clone (reviewer, and again at the final head) |
+| 16 | Independent reviewer | PASS | review 1 FAIL (three mutation survivors), review 2 PASS at 65d169e |
+| 17 | PR, trace guard | ready | PR #2 from `release/1.0.0`, trace guard CLEAN; merge and PyPI publish left to the maintainer |
+| 18 | Mutation round | PASS | author 40 (39 killed, 1 removed as redundant code); blind lens e 83 (71 killed, 4 equivalent, 8 closed by contracts) and 15 more, all killed; reviewer 8 re-applied and 40 new (34 killed, 3 equivalent, 3 closed by contracts) |
+| 19 | Five QA lenses | PASS | a (round 2), b (round 1), c (round 3), d (round 2), e (round 2) |
+
+## Behaviour changes against PyPI 0.1.0
+
+The CHANGELOG's "Upgrading from 0.1.0" list is the reference; lenses a and d traced every
+difference they measured to a line there. In short: `DEFAULT` also accepts
+`enable(d)`/`disable(d)` (`CLASSIC` keeps the 0.1.0 words); errors are `NotBooleanError`
+and `BoolishError`, still `ValueError`, with bounded messages; `strtobool` raises
+`TypeError` for anything that is not a `str`; `BoolRules` refuses a bare string, a
+non-string word and words that collide once folded; `str` subclasses are read by their
+plain text; new `to_bool`, `is_truthy`, `is_falsy`, lenient mode, `MULTILINGUAL`,
+`extend` and the `boolish` command.
 
 ## Baseline on 0.2.0 (before any change)
 
@@ -187,3 +222,17 @@ integer path gives the same answer).
 | Review | Head | Verdict | Findings and outcome |
 | --- | --- | --- | --- |
 | 1 | d281a1f | FAIL (item 18) | every other item passed on its own evidence: gates alone on a fresh clone, 320 passed and 18 skipped, `BOOLISH_E2E=1` 3 passed, `twine check --strict`, archives, metadata, sources re-fetched with unchanged hashes, trace guard CLEAN; 8 author mutations re-applied and killed; 40 new mutations: 34 killed, 3 equivalent (the leading strip in `fold_within`, `isinstance` in `strtobool`, `str.__str__` before matching), 3 survived (a float subclass's own `__repr__`, an unbounded variable name, an unsorted clash listing). Contracts in `tests/test_contract_strength.py`, each survivor re-applied and killed; the old improvement plan now says 1.0.0 changed what it describes |
+| 2 | 65d169e | PASS | the three survivors re-applied and killed; `src` unchanged since review 1; gates alone on a fresh clone (323 passed, 18 skipped); trace guard CLEAN |
+
+## Decisions for the maintainer
+
+- An empty environment variable is an error, as any unrecognised value; add `""` to a
+  vocabulary to read it as false. click reads blank values as false; boolish refuses them.
+- Strings are never read as numbers, in either mode and on the command line.
+- One-letter answers other than `y` and `n` stay out of `MULTILINGUAL`.
+- `rules` given something other than a `BoolRules` fails with Python's own
+  `AttributeError`; the type hints already reject it.
+- History on `main` before this branch has em-dashes in two old commits and a capitalised
+  merge subject; the squash merge of this PR does not touch them.
+- Source and test files stay within 200 lines (`tests/test_packaging.py`); this report,
+  the GUIDE and the CHANGELOG are longer documents.
