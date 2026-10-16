@@ -1,4 +1,4 @@
-# Build and upload to PyPI. Run from a clean clone of main, after scripts/check.ps1.
+# Build and upload to PyPI from a clean clone of main; runs scripts/check.ps1 first.
 # The token is read from a secret store at release time, never from git.
 $ErrorActionPreference = "Stop"
 
@@ -15,6 +15,10 @@ try {
     if ($_.Exception.Response.StatusCode.value__ -ne 404) { throw }
 }
 
+if (git status --porcelain) { throw "The working tree is not clean." }
+if ((git rev-parse --abbrev-ref HEAD) -ne "main") { throw "Release only from main." }
+& "$PSScriptRoot\check.ps1"
+
 $token = $env:PYPI_TOKEN
 if (-not $token -and (Test-Path "C:\secrets\pypi-token.txt")) {
     $token = (Get-Content "C:\secrets\pypi-token.txt" -Raw).Trim()
@@ -29,4 +33,7 @@ Step "twine check" { python -m twine check --strict dist/* }
 
 $env:TWINE_USERNAME = "__token__"
 $env:TWINE_PASSWORD = $token
-try { Step "upload" { python -m twine upload dist/* } } finally { Remove-Item Env:\TWINE_PASSWORD -ErrorAction SilentlyContinue }
+try { Step "upload" { python -m twine upload dist/* } } finally {
+    Remove-Item Env:\TWINE_PASSWORD -ErrorAction SilentlyContinue
+    Remove-Item Env:\TWINE_USERNAME -ErrorAction SilentlyContinue
+}

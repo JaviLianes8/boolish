@@ -34,8 +34,11 @@ Every behaviour that differs from 0.1.0:
   the input (0.1.0 echoed it whole); `getenv_bool` errors name the variable and give
   only the length of its value, which may be a secret.
 - `strtobool` raises `TypeError` for a value that is not a `str`, with or without a
-  default. In 0.1.0, `bytes` raised `ValueError` or returned the default, and other
-  types raised `AttributeError`.
+  default. In 0.1.0, `bytes` raised `ValueError` or returned the default, any object
+  with `strip` and `lower` methods was matched through them, and other types raised
+  `AttributeError`.
+- A `str` subclass is matched by its plain text; 0.1.0 called the subclass's own
+  `strip` and `lower`, so an override could change the answer.
 - `BoolRules` raises `TypeError` for a bare `str`, `bytes` or `bytearray` (0.1.0 split
   `"yes"` into the words `y`, `e`, `s`) and for a word that is not a `str`.
 - `BoolRules` raises `BoolishError` for a true and a false word that become equal once
