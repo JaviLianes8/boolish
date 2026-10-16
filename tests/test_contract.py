@@ -53,9 +53,22 @@ def test_the_package_ships_type_information() -> None:
     assert importlib.resources.files("boolish").joinpath("py.typed").is_file()
 
 
-def test_public_classes_live_in_the_package_namespace() -> None:
-    for cls in (boolish.BoolRules, boolish.BoolishError, boolish.NotBooleanError):
-        assert cls.__module__ == "boolish"
+def test_public_names_live_in_the_package_namespace() -> None:
+    for name in boolish.__all__:
+        obj = getattr(boolish, name)
+        if callable(obj) and name != "BoolLike":
+            assert obj.__module__ == "boolish", name
+
+
+def test_only_the_two_vocabularies_are_dataclass_fields() -> None:
+    import dataclasses
+
+    assert [field.name for field in dataclasses.fields(BoolRules)] == ["true", "false"]
+    assert dataclasses.asdict(CLASSIC) == {"true": CLASSIC.true, "false": CLASSIC.false}
+
+
+def test_the_missing_default_reads_well_in_help() -> None:
+    assert "default: 'object' = <no default>" in str(inspect.signature(boolish.strtobool))
 
 
 P = inspect.Parameter

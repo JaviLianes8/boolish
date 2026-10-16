@@ -2,6 +2,8 @@
 
 import io
 import os
+import re
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -80,8 +82,15 @@ def test_help_lists_runnable_examples(capsys: pytest.CaptureFixture[str]) -> Non
     assert exc.value.code == 0
     out = capsys.readouterr().out
     assert "examples:" in out
-    assert "boolish yes" in out
-    assert "--lenient" in out
+    examples = [line for line in out.splitlines() if line.startswith("  boolish ")]
+    assert len(examples) == 6
+    for line in examples:
+        command, description = re.split(" {2,}", line.strip(), maxsplit=1)
+        code = main(shlex.split(command)[1:])
+        printed = capsys.readouterr().out
+        assert f"exits {code}" in description, line
+        shown = re.search('prints "(\\w+)"', description)
+        assert printed == (shown.group(1) + "\n" if shown else ""), line
 
 
 def test_clashing_custom_words_are_an_error_with_exit_two(

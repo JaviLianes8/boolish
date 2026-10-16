@@ -37,6 +37,10 @@ from boolish._parse import strtobool
 from boolish._rules import CLASSIC, DEFAULT, MULTILINGUAL, BoolRules
 from boolish._version import __version__ as __version__
 
+# Public functions report the package as their home, like the public classes.
+for _function in (getenv_bool, is_falsy, is_truthy, strtobool, to_bool):
+    _function.__module__ = "boolish"
+
 __all__ = [
     "CLASSIC",
     "DEFAULT",

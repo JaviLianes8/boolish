@@ -14,6 +14,9 @@ T = TypeVar("T")
 class _Missing:
     """Sentinel that tells a real default apart from ``None`` as a default."""
 
+    def __repr__(self) -> str:
+        return "<no default>"
+
 
 _MISSING = _Missing()
 
@@ -67,6 +70,7 @@ def strtobool(
     against a rule spelled ``"si"``. Pass ``rules`` to swap the vocabulary, for example
     :data:`~boolish.MULTILINGUAL`.
 
+    >>> from boolish import strtobool
     >>> strtobool("yes")
     True
     >>> strtobool("Off")

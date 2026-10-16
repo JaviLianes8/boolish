@@ -66,6 +66,7 @@ def to_bool(
     In lenient mode (``strict=False``) accents are folded for strings and any non-zero,
     finite number counts as ``True``.
 
+    >>> from boolish import to_bool
     >>> to_bool(1)
     True
     >>> to_bool("off")
@@ -87,6 +88,7 @@ def is_truthy(value: BoolLike, *, rules: BoolRules = DEFAULT, strict: bool = Tru
     Anything unknown, including ``None`` and unmatched strings, is ``False``. Handy in an
     ``if`` where an unparseable value should simply count as "no".
 
+    >>> from boolish import is_truthy
     >>> is_truthy("yes")
     True
     >>> is_truthy("maybe")
@@ -101,6 +103,7 @@ def is_falsy(value: BoolLike, *, rules: BoolRules = DEFAULT, strict: bool = True
     Anything unknown, including ``None`` and unmatched strings, is ``False``. It is the
     mirror of :func:`is_truthy`, not its negation.
 
+    >>> from boolish import is_falsy
     >>> is_falsy("off")
     True
     >>> is_falsy("maybe")

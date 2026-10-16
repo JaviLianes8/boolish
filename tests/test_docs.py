@@ -98,3 +98,17 @@ def test_docs_link_absolutely_and_avoid_the_long_dash() -> None:
         assert LONG_DASH not in text, name
         for target in re.findall("[]][(]([^)]+)[)]", text):
             assert target.startswith("https://"), (name, target)
+
+
+@pytest.mark.parametrize("name", [n for n in boolish.__all__ if n != "BoolLike"])
+def test_public_docstring_examples_run_on_their_own(name: str, clean_environ: None) -> None:
+    obj = getattr(boolish, name)
+    if not callable(obj):
+        pytest.skip("constants are shown in the package docstring")
+    tests = doctest.DocTestFinder(recurse=False).find(obj, name, globs={})
+    runner = doctest.DocTestRunner(optionflags=FLAGS)
+    for test in tests:
+        runner.run(test)
+    result = runner.summarize(verbose=False)
+    assert result.attempted > 0
+    assert result.failed == 0

@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from functools import cached_property
 
 from boolish._errors import BoolishError, preview
 from boolish._normalize import fold, normalize
@@ -46,6 +47,7 @@ class BoolRules:
     or a word that is not a string, raises ``TypeError``. With no arguments the
     vocabulary is :data:`~boolish.CLASSIC`, the removed stdlib function's twelve words.
 
+    >>> from boolish import CLASSIC, BoolRules
     >>> rules = BoolRules(true={"Up"}, false={"down"})
     >>> sorted(rules.true), sorted(rules.false)
     (['up'], ['down'])
@@ -59,8 +61,6 @@ class BoolRules:
 
     true: frozenset[str]
     false: frozenset[str]
-    _true_folded: frozenset[str] = field(init=False, compare=False, repr=False)
-    _false_folded: frozenset[str] = field(init=False, compare=False, repr=False)
 
     def __init__(
         self,
@@ -72,15 +72,20 @@ class BoolRules:
         clash = true_words & false_words
         if clash:
             raise BoolishError(f"words marked both true and false: {_listing(clash)}")
-        true_folded = frozenset(fold(word) for word in true_words)
-        false_folded = frozenset(fold(word) for word in false_words)
-        folded_clash = true_folded & false_folded
-        if folded_clash:
-            raise BoolishError(f"words collide once accents are folded: {_listing(folded_clash)}")
         object.__setattr__(self, "true", true_words)
         object.__setattr__(self, "false", false_words)
-        object.__setattr__(self, "_true_folded", true_folded)
-        object.__setattr__(self, "_false_folded", false_folded)
+        folded_clash = self._true_folded & self._false_folded
+        if folded_clash:
+            raise BoolishError(f"words collide once accents are folded: {_listing(folded_clash)}")
+
+    # The folded forms are derived data, kept out of the dataclass fields.
+    @cached_property
+    def _true_folded(self) -> frozenset[str]:
+        return frozenset(fold(word) for word in self.true)
+
+    @cached_property
+    def _false_folded(self) -> frozenset[str]:
+        return frozenset(fold(word) for word in self.false)
 
     def __repr__(self) -> str:
         return f"BoolRules(true={sorted(self.true)!r}, false={sorted(self.false)!r})"

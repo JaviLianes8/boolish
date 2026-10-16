@@ -128,7 +128,7 @@ To treat an empty variable as false, say so: `DEFAULT.extend(false={""})`.
 | Error | Raised when |
 | --- | --- |
 | `NotBooleanError` | a value has no boolean meaning and no default was given; `getenv_bool` on a set but unrecognised variable |
-| `BoolishError` | base class of the above; raised directly for a ruleset with a word on both sides |
+| `BoolishError` | base class of the above; raised directly for a ruleset with a word on both sides, or two words that are equal once folded |
 | `TypeError` | `strtobool` given a non-string; a ruleset given a bare string or a non-string word |
 
 `BoolishError` subclasses `ValueError`. `NotBooleanError` keeps the whole input on
@@ -170,7 +170,9 @@ No vocabulary of boolish ever gives the opposite answer to any of these tools.
 
 ## Upgrading from 0.1.0
 
-See the 1.0.0 section of the CHANGELOG. In short: `DEFAULT` gained `enable(d)` and
-`disable(d)` (use `CLASSIC` for the 0.1.0 vocabulary), errors are `NotBooleanError`
-(still a `ValueError`), `strtobool` raises `TypeError` for non-strings, and `BoolRules`
-refuses a bare string.
+The CHANGELOG's 1.0.0 section lists every difference. The ones most likely to matter:
+`DEFAULT` gained `enable(d)` and `disable(d)` (pass `rules=CLASSIC` for the 0.1.0
+words); errors are `NotBooleanError` and `BoolishError`, still `ValueError`;
+`strtobool` raises `TypeError` for anything that is not a `str`, `bytes` included and
+even with a default; `BoolRules` refuses a bare string and a true and a false word that
+become equal once folded (such as `sí` and `si`).

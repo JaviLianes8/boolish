@@ -17,46 +17,57 @@ signatures, defaults and error types follow semantic versioning from here on.
 
 - `CLASSIC`: exactly the twelve words of the removed `distutils.util.strtobool`, equal
   to `BoolRules()`. Use it for the 0.1.0 vocabulary.
-- `NotBooleanError.variable`: the environment variable a `getenv_bool` error came from;
-  the message names it too.
+- `NotBooleanError.variable`: the environment variable a `getenv_bool` error came from.
 - `python -m boolish`, and `--rules classic` on the command line.
 - The vocabularies are checked against the stdlib function, setuptools' copy,
   python-strtobool, `configparser`, click, PyYAML, ruamel.yaml, the YAML 1.1 and 1.2.2
   specifications and the CLDR yes/no words.
 
-### Changed
-
-- Exit code `2` (was `1`) for an unrecognised value on the command line, so a false
-  answer and an error can be told apart; usage errors already exited `2`.
-- `strtobool` raises `TypeError` for a value that is not a `str`, even with a default
-  (0.1.0 raised `AttributeError`).
-- Error messages show at most the first 32 characters of a string, a size for huge
-  integers and only the type name for other objects; the whole input stays on `value`.
-  `to_bool` on an integer of more than 4300 digits used to fail (Python 3.11 and newer)
-  with the `ValueError` of `repr`; it now raises `NotBooleanError`.
-- `BoolRules` refuses a bare `str`, `bytes` or `bytearray` (it was split into letters)
-  and a word that is not a `str`, with `TypeError`; `extend` too. Its `true` and `false`
-  attributes are typed `frozenset[str]` and its constructor takes any iterable.
-- `BoolRules` no longer exposes `true_folded` and `false_folded` as fields or
-  constructor arguments; `repr` lists the words sorted.
-- Lenient folding also handles compatibility forms (full-width letters) and marks added
-  by lower-casing.
-- `to_bool` reads `int` and `float` subclasses by their value, so a subclass cannot
-  change the answer through `__eq__`; `strtobool` ignores overridden `strip`/`lower`.
-- `getenv_bool(name, rules=..., strict=...)` without a default now type-checks.
-- `BoolRules`, `BoolishError` and `NotBooleanError` report `boolish` as their module.
-- The version lives in one place; `pyproject.toml` reads it.
-
 ### Upgrading from 0.1.0 (the previous release on PyPI)
+
+Every behaviour that differs from 0.1.0:
 
 - `DEFAULT` also accepts `enable`, `enabled`, `disable` and `disabled`; pass
   `rules=CLASSIC` to keep the 0.1.0 words.
-- Errors are `NotBooleanError` and `BoolishError`, both still `ValueError`.
-- New: `to_bool`, `is_truthy`, `is_falsy`, `strict=False`, `MULTILINGUAL`,
-  `BoolRules.extend`, `strict` and `rules` on `getenv_bool`, and the command line tool.
+- Errors are `NotBooleanError` (unrecognised input) and `BoolishError` (a bad
+  ruleset), both still `ValueError`. Messages show at most the first 32 characters of
+  the input (0.1.0 echoed it whole); `getenv_bool` errors name the variable.
+- `strtobool` raises `TypeError` for a value that is not a `str`, with or without a
+  default. In 0.1.0, `bytes` raised `ValueError` or returned the default, and other
+  types raised `AttributeError`.
+- `BoolRules` raises `TypeError` for a bare `str`, `bytes` or `bytearray` (0.1.0 split
+  `"yes"` into the words `y`, `e`, `s`) and for a word that is not a `str`.
+- `BoolRules` raises `BoolishError` for a true and a false word that become equal once
+  accents and compatibility forms are folded, such as `sí` and `si` (0.1.0 accepted
+  them), because lenient matching could not tell them apart.
+- `BoolRules.true` and `BoolRules.false` are typed `frozenset[str]`; the constructor
+  takes any iterable of words. `repr` lists the words sorted.
+- `BoolRules`, `BoolishError`, `NotBooleanError` and the public functions report
+  `boolish` as their module.
+- New: `CLASSIC`, `to_bool`, `is_truthy`, `is_falsy`, `strict=False`, `MULTILINGUAL`,
+  `BoolRules.extend`, `strict` and `rules` on `getenv_bool`, `NotBooleanError.value` and
+  `.variable`, and the `boolish` command (also `python -m boolish`).
+
+### Changed since the unpublished 0.2.0
+
+- Exit code `2` (was `1`) for an unrecognised value on the command line, so a false
+  answer and an error can be told apart; usage errors already exited `2`. The `--help`
+  examples are now all runnable and the `--lenient` help no longer promises numbers
+  (the command reads its value as text).
+- `to_bool` on an integer of more than 4300 digits failed (Python 3.11 and newer) with
+  the `ValueError` of `repr`; it now raises `NotBooleanError`.
+- `BoolRules` keeps its folded vocabularies out of the dataclass fields and the
+  constructor (they were the public `true_folded` and `false_folded`).
+- Lenient folding also handles compatibility forms (full-width letters) and runs in
+  linear time on long input.
+- `to_bool` reads `int` and `float` subclasses by their value, so a subclass cannot
+  change the answer through `__eq__`; `strtobool` ignores overridden `strip`/`lower`.
+- `getenv_bool(name, rules=..., strict=...)` without a default now type-checks.
+- The version lives in one place; `pyproject.toml` reads it.
 
 ## [0.2.0] - not published
 
+### Added
 
 - `to_bool` coerces any boolean-ish value (`bool`, `int`, `float`, `str`, `None`), not
   only strings.

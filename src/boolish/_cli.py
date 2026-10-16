@@ -15,17 +15,18 @@ from boolish._version import __version__
 
 _EPILOG = """\
 examples:
-  boolish yes            prints "true", exits 0
-  boolish off            prints "false", exits 1
-  boolish --quiet on     prints nothing, exits 0 (read the exit code)
-  boolish --lenient Si   folds accents, prints "true"
-  boolish --rules multilingual oui
-  boolish --true aye --false nay aye
+  boolish yes                               prints "true", exits 0
+  boolish off                               prints "false", exits 1
+  boolish --quiet on                        prints nothing, exits 0
+  boolish --rules multilingual --lenient Sí  prints "true", exits 0
+  boolish --rules classic enabled           not a classic word, exits 2
+  boolish --true aye --false nay aye        prints "true", exits 0
   if boolish --quiet "$FLAG"; then echo enabled; fi
 
-The exit code is 0 when the value is true and 1 when it is false, so the command drops
-straight into a shell conditional. An unrecognised value is an error: the message goes
-to stderr and the exit code is 2, as for a usage error.
+Exit codes: 0 for true, 1 for false, 2 for an unrecognised value or a
+usage error, so the command drops straight into a shell conditional.
+Errors go to stderr. The value is always read as text: "2" is not a
+boolean, even with --lenient.
 """
 
 
@@ -49,7 +50,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--lenient",
         dest="strict",
         action="store_false",
-        help="also fold accents and treat any non-zero number as true",
+        help="also fold accents and compatibility forms before matching",
     )
     parser.add_argument(
         "--rules",

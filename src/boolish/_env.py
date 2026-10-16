@@ -37,6 +37,7 @@ def getenv_bool(
     Pass ``strict=False`` to fold accents, or ``rules`` to swap the vocabulary.
 
     >>> import os
+    >>> from boolish import NotBooleanError, getenv_bool
     >>> os.environ["FEATURE_X"] = "true"
     >>> getenv_bool("FEATURE_X")
     True
