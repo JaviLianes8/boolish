@@ -90,3 +90,30 @@ def test_a_stream_without_an_encoding_gets_ascii(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setattr(sys, "stderr", stream)
     assert main(["S" + chr(0xED)]) == 2
     assert stream.getvalue() == "boolish: 'S\\xed' is not a recognised boolean\n"
+
+
+class LoudFloat(float):
+    def __repr__(self) -> str:
+        raise RuntimeError("repr")
+
+
+def test_a_float_subclass_never_runs_its_own_repr() -> None:
+    assert str(NotBooleanError(LoudFloat(2.0))) == "2.0 is not a recognised boolean"
+
+
+def test_a_long_variable_name_is_cut_in_the_message() -> None:
+    name = "V" * 40
+    message = str(NotBooleanError("x", variable=name))
+    assert message.startswith("environment variable '" + "V" * 32 + "'...: ")
+
+
+def test_a_clash_lists_the_ten_smallest_words_in_order() -> None:
+    words = [f"w{n:02d}" for n in range(30, 0, -1)]
+    shown = ", ".join(f"'w{n:02d}'" for n in range(1, 11))
+    assert _clash_of(words) == f"words marked both true and false: {shown}, ..."
+
+
+def _clash_of(words: list[str]) -> str:
+    with pytest.raises(BoolishError) as info:
+        BoolRules(true=words, false=words)
+    return str(info.value)
