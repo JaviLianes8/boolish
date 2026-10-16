@@ -181,3 +181,9 @@ Equivalent mutations argued by lens e: the chunk size (decomposition is per char
 every reordered mark is dropped), the ASCII fast path (NFKD leaves ASCII unchanged), passing
 a `str` subclass on (both matchers call `str.strip` first), and the `bool` branch (the
 integer path gives the same answer).
+
+## Independent reviewer (item 16)
+
+| Review | Head | Verdict | Findings and outcome |
+| --- | --- | --- | --- |
+| 1 | d281a1f | FAIL (item 18) | every other item passed on its own evidence: gates alone on a fresh clone, 320 passed and 18 skipped, `BOOLISH_E2E=1` 3 passed, `twine check --strict`, archives, metadata, sources re-fetched with unchanged hashes, trace guard CLEAN; 8 author mutations re-applied and killed; 40 new mutations: 34 killed, 3 equivalent (the leading strip in `fold_within`, `isinstance` in `strtobool`, `str.__str__` before matching), 3 survived (a float subclass's own `__repr__`, an unbounded variable name, an unsorted clash listing). Contracts in `tests/test_contract_strength.py`, each survivor re-applied and killed; the old improvement plan now says 1.0.0 changed what it describes |
