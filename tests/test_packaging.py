@@ -5,18 +5,19 @@ from __future__ import annotations
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SKIP = {".git", ".venv", "dist", "build", "sources", "__pycache__"}
 LONG_DASH = chr(0x2014)
 
 
 def _files(*suffixes: str) -> list[Path]:
-    found = []
-    for path in ROOT.rglob("*"):
-        parts = set(path.relative_to(ROOT).parts)
-        hidden = any(part.startswith(".") for part in parts)
-        if path.is_file() and path.suffix in suffixes and not parts & SKIP and not hidden:
-            found.append(path)
-    return found
+    """The files of the project itself: top level, src, tests and scripts."""
+    found = [path for path in ROOT.iterdir() if path.is_file()]
+    for folder in ("src", "tests", "scripts"):
+        found += [
+            path
+            for path in (ROOT / folder).rglob("*")
+            if path.is_file() and "__pycache__" not in path.parts and "sources" not in path.parts
+        ]
+    return [path for path in found if path.suffix in suffixes]
 
 
 def test_source_test_and_script_files_stay_under_200_lines() -> None:
