@@ -6,7 +6,7 @@ import os
 from typing import TypeVar, overload
 
 from boolish._errors import NotBooleanError
-from boolish._parse import strtobool
+from boolish._parse import match_string
 from boolish._rules import DEFAULT, BoolRules
 
 T = TypeVar("T")
@@ -54,7 +54,8 @@ def getenv_bool(
     raw = os.environ.get(name)
     if raw is None:
         return default
-    try:
-        return strtobool(raw, rules=rules, strict=strict)
-    except NotBooleanError:
-        raise NotBooleanError(raw, variable=name) from None
+    # Matched directly so no inner error holding a preview of the value is ever chained.
+    result = match_string(raw, rules, strict)
+    if result is None:
+        raise NotBooleanError(raw, variable=name)
+    return result

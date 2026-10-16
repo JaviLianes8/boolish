@@ -15,6 +15,7 @@ from boolish import (
     MULTILINGUAL,
     BoolRules,
     NotBooleanError,
+    getenv_bool,
     is_falsy,
     is_truthy,
     strtobool,
@@ -136,3 +137,29 @@ def test_help_survives_any_console_encoding(monkeypatch: pytest.MonkeyPatch, enc
     assert exc.value.code == 0
     stream.flush()
     assert b"examples:" in stream.buffer.getvalue()
+
+
+def test_environment_errors_chain_nothing(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("BOOLISH_SECRET", "sk_live_" + "A" * 40)
+    with pytest.raises(NotBooleanError) as info:
+        getenv_bool("BOOLISH_SECRET")
+    assert info.value.__context__ is None
+    assert info.value.__cause__ is None
+    assert "sk_live" not in str(info.value)
+
+
+class _NameLies(type):
+    @property
+    def __name__(cls) -> str:  # type: ignore[override]
+        raise KeyError("name")
+
+
+class Disguised(metaclass=_NameLies):
+    pass
+
+
+def test_a_metaclass_cannot_break_the_type_name() -> None:
+    with pytest.raises(NotBooleanError, match="a value of type Disguised is not"):
+        to_bool(Disguised())  # type: ignore[call-overload]
+    with pytest.raises(TypeError, match="not Disguised"):
+        strtobool(Disguised())  # type: ignore[call-overload]

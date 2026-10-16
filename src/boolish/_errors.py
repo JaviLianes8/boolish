@@ -7,7 +7,8 @@ _PREVIEW = 32
 
 def kind(value: object) -> str:
     """Name the type of ``value`` safely: escaped, and cut to 40 characters."""
-    name = str.__str__(type(value).__name__)[:40]
+    # The base descriptor reads the real name even when a metaclass overrides __name__.
+    name = str.__str__(type.__dict__["__name__"].__get__(type(value)))[:40]
     return "".join(ch if ch.isprintable() else ascii(ch)[1:-1] for ch in name)
 
 
