@@ -66,7 +66,9 @@ def test_archives_hold_exactly_what_they_should(dist: Path) -> None:
     assert "tests/fixtures/oracles.json" in members
     sources = {name for name in members if name.startswith("tests/sources/")}
     assert sources == {"tests/sources/MANIFEST.json"}
-    assert not [name for name in members if "cache" in name or name.startswith(".")]
+    hidden = [name for name in members if name.startswith(".") and name != ".gitignore"]
+    assert not hidden
+    assert not [name for name in members if "cache" in name]
 
 
 def test_the_installed_wheel_works_for_a_consumer(dist: Path, tmp_path: Path) -> None:
