@@ -139,3 +139,43 @@ def test_python_dash_m_runs_the_same_interface() -> None:
     )
     assert (bad.returncode, bad.stdout) == (2, "")
     assert bad.stderr.strip() == "boolish: 'maybe' is not a recognised boolean"
+
+
+class ClosedPipe(io.StringIO):
+    """A stdout whose reader has gone away."""
+
+    def __init__(self, fd: int) -> None:
+        super().__init__()
+        self.fd = fd
+
+    def write(self, text: str) -> int:
+        raise BrokenPipeError(32, "Broken pipe")
+
+    def fileno(self) -> int:
+        return self.fd
+
+
+def test_a_closed_output_pipe_keeps_the_exit_code(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    target = tmp_path / "out.txt"
+    fd = os.open(target, os.O_WRONLY | os.O_CREAT)
+    try:
+        monkeypatch.setattr(sys, "stdout", ClosedPipe(fd))
+        assert main(["yes"]) == 0
+        assert main(["no"]) == 1
+        os.write(fd, b"after")
+    finally:
+        os.close(fd)
+    assert target.read_bytes() == b""
+
+
+def test_a_closed_pipe_without_a_descriptor_is_still_quiet(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class NoDescriptor(ClosedPipe):
+        def fileno(self) -> int:
+            raise io.UnsupportedOperation("fileno")
+
+    monkeypatch.setattr(sys, "stdout", NoDescriptor(-1))
+    assert main(["off"]) == 1

@@ -99,10 +99,15 @@ def _write(stream: TextIO, text: str) -> None:
     try:
         stream.write(safe + "\n")
         stream.flush()
-    except BrokenPipeError:
-        # The reader went away; the exit code still carries the answer.
-        devnull = os.open(os.devnull, os.O_WRONLY)
-        os.dup2(devnull, stream.fileno())
+    except OSError:
+        # The reader went away (a closed pipe); the exit code still carries the answer.
+        # Pointing the descriptor at devnull keeps the interpreter's final flush quiet.
+        try:
+            devnull = os.open(os.devnull, os.O_WRONLY)
+            os.dup2(devnull, stream.fileno())
+            os.close(devnull)
+        except (OSError, ValueError):
+            pass
 
 
 def main(argv: Sequence[str] | None = None) -> int:
