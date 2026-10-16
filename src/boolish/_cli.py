@@ -18,7 +18,7 @@ examples:
   boolish yes                               prints "true", exits 0
   boolish off                               prints "false", exits 1
   boolish --quiet on                        prints nothing, exits 0
-  boolish --rules multilingual --lenient Sí  prints "true", exits 0
+  boolish --rules multilingual --lenient Sí prints "true", exits 0
   boolish --rules classic enabled           not a classic word, exits 2
   boolish --true aye --false nay aye        prints "true", exits 0
   if boolish --quiet "$FLAG"; then echo enabled; fi
