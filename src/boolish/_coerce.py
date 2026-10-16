@@ -17,7 +17,10 @@ BoolLike = bool | int | float | str | None
 def _coerce_number(value: int | float, strict: bool) -> bool | None:
     """Map a number to a bool, or ``None`` when it is not boolean-ish."""
     # The base-class methods read the plain value, so a subclass cannot lie about it.
-    number = float.__float__(value) if isinstance(value, float) else int.__int__(value)
+    if issubclass(type(value), float):
+        number: int | float = float.__float__(value)
+    else:
+        number = int.__int__(value)  # type: ignore[arg-type]
     if isinstance(number, float) and not math.isfinite(number):
         return None
     if number == 0:
@@ -31,12 +34,14 @@ def _coerce_number(value: int | float, strict: bool) -> bool | None:
 
 def _resolve(value: object, rules: BoolRules, strict: bool) -> bool | None:
     """Return the bool meaning of any value, or ``None`` if it has none."""
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, int | float):
-        return _coerce_number(value, strict)
-    if isinstance(value, str):
-        return match_string(value, rules, strict)
+    # type() rather than isinstance(): a mock can fake its __class__.
+    cls = type(value)
+    if cls is bool:
+        return value is True
+    if issubclass(cls, int | float):
+        return _coerce_number(value, strict)  # type: ignore[arg-type]
+    if issubclass(cls, str):
+        return match_string(str.__str__(value), rules, strict)
     return None
 
 

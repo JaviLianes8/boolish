@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import TypeVar, overload
 
-from boolish._errors import NotBooleanError
-from boolish._normalize import fold, normalize
+from boolish._errors import NotBooleanError, kind
+from boolish._normalize import fold_within, normalize
 from boolish._rules import DEFAULT, BoolRules
 
 T = TypeVar("T")
@@ -35,7 +35,7 @@ def match_string(value: str, rules: BoolRules, strict: bool) -> bool | None:
     if token in rules.false:
         return False
     if not strict:
-        folded = fold(value)
+        folded = fold_within(value, rules._longest)
         if folded in rules._true_folded:
             return True
         if folded in rules._false_folded:
@@ -78,9 +78,9 @@ def strtobool(
     >>> strtobool("maybe", False)
     False
     """
-    if not isinstance(value, str):
-        raise TypeError(f"strtobool expects a str, not {type(value).__name__[:40]}")
-    result = match_string(value, rules, strict)
+    if not issubclass(type(value), str):
+        raise TypeError(f"strtobool expects a str, not {kind(value)}")
+    result = match_string(str.__str__(value), rules, strict)
     if result is not None:
         return result
     if not isinstance(default, _Missing):

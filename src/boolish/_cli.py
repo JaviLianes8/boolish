@@ -6,12 +6,15 @@ import argparse
 import os
 import sys
 from collections.abc import Sequence
-from typing import TextIO
+from typing import TYPE_CHECKING, NoReturn, TextIO, cast
 
 from boolish._coerce import to_bool
 from boolish._errors import BoolishError, NotBooleanError
 from boolish._rules import CLASSIC, DEFAULT, MULTILINGUAL, BoolRules
 from boolish._version import __version__
+
+if TYPE_CHECKING:
+    from _typeshed import SupportsWrite
 
 _EPILOG = """\
 examples:
@@ -31,7 +34,7 @@ boolean, even with --lenient.
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
+    parser = _Parser(
         prog="boolish",
         description="Convert a boolean-ish value to a real boolean.",
         epilog=_EPILOG,
@@ -93,12 +96,37 @@ def _resolve_rules(name: str, true: Sequence[str], false: Sequence[str]) -> Bool
     return base
 
 
-def _write(stream: TextIO, text: str) -> None:
-    """Write a line, escaping what the stream's encoding cannot show."""
+def _clean(message: str) -> str:
+    """Escape control characters and cut a message to one bounded line."""
+    shown = "".join(ch if ch.isprintable() else ascii(ch)[1:-1] for ch in message[:300])
+    return shown + ("..." if len(message) > 300 else "")
+
+
+class _Parser(argparse.ArgumentParser):
+    """An argument parser whose output never crashes and never echoes raw input."""
+
+    def _print_message(self, message: str, file: SupportsWrite[str] | None = None) -> None:
+        if message:
+            stream = cast("TextIO | None", file if file is not None else sys.stderr)
+            _write(stream, message, end="")
+
+    def error(self, message: str) -> NoReturn:
+        self.print_usage(sys.stderr)
+        self.exit(2, f"{self.prog}: error: {_clean(message)}\n")
+
+
+def _write(stream: TextIO | None, text: str, end: str = "\n") -> None:
+    """Write ``text``, escaping what the stream's encoding cannot show.
+
+    A closed stream (``None`` when the descriptor was closed at start-up) or a closed
+    pipe is skipped silently: the exit code still carries the answer.
+    """
+    if stream is None:
+        return
     encoding = getattr(stream, "encoding", None) or "ascii"
     safe = text.encode(encoding, "backslashreplace").decode(encoding, "replace")
     try:
-        stream.write(safe + "\n")
+        stream.write(safe + end)
         stream.flush()
     except OSError:
         # The reader went away (a closed pipe); the exit code still carries the answer.

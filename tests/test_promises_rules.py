@@ -165,7 +165,7 @@ def test_getenv_bool_unset_set_and_bad(monkeypatch: pytest.MonkeyPatch) -> None:
     assert info.value.variable == "BOOLISH_FLAG"
     assert info.value.value == ""
     assert str(info.value) == (
-        "environment variable 'BOOLISH_FLAG': '' is not a recognised boolean"
+        "environment variable 'BOOLISH_FLAG': a value of 0 characters is not a recognised boolean"
     )
 
 

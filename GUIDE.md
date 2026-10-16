@@ -108,7 +108,9 @@ letters). Rulesets are frozen, hashable, comparable and picklable.
 
 `getenv_bool(name, default=None, *, rules=DEFAULT, strict=True)` reads a variable. Unset
 returns `default`. Set to anything unrecognised, the empty string included, raises
-`NotBooleanError` whose `variable` attribute and message name the variable:
+`NotBooleanError` whose `variable` attribute and message name the variable. The message
+gives only the length of the value, never the value itself, since environment variables
+often hold secrets; the whole value is on the error's `value` attribute:
 
 ```pycon
 >>> import os
@@ -118,7 +120,7 @@ returns `default`. Set to anything unrecognised, the empty string included, rais
 ...     getenv_bool("GUIDE_FLAG", False)
 ... except NotBooleanError as error:
 ...     print(error.variable, "|", error)
-GUIDE_FLAG | environment variable 'GUIDE_FLAG': '' is not a recognised boolean
+GUIDE_FLAG | environment variable 'GUIDE_FLAG': a value of 0 characters is not a recognised boolean
 ```
 
 To treat an empty variable as false, say so: `DEFAULT.extend(false={""})`.
@@ -133,7 +135,8 @@ To treat an empty variable as false, say so: `DEFAULT.extend(false={""})`.
 
 `BoolishError` subclasses `ValueError`. `NotBooleanError` keeps the whole input on
 `value` but its message shows at most the first 32 characters, a size for huge integers
-and only the type name for other objects, so a message never carries a payload.
+and only the (escaped) type name for other objects, so a message never carries a
+payload; for an environment variable it gives only the length of the value.
 
 ## Command line
 

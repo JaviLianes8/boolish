@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from functools import cached_property
 
-from boolish._errors import BoolishError, preview
+from boolish._errors import BoolishError, kind, preview
 from boolish._normalize import fold, normalize
 
 _CLASSIC_TRUE = frozenset({"y", "yes", "t", "true", "on", "1"})
@@ -15,14 +15,13 @@ _CLASSIC_FALSE = frozenset({"n", "no", "f", "false", "off", "0"})
 
 def _words(words: Iterable[str], side: str) -> frozenset[str]:
     """Normalise a vocabulary, refusing a bare string or a non-string word."""
-    if isinstance(words, str | bytes | bytearray):
-        kind = type(words).__name__
-        raise TypeError(f"{side} must be a collection of words, not a single {kind}")
+    if issubclass(type(words), str | bytes | bytearray):
+        raise TypeError(f"{side} must be a collection of words, not a single {kind(words)}")
     result = set()
     for word in words:
-        if not isinstance(word, str):
-            raise TypeError(f"{side} words must be str, not {type(word).__name__[:40]}")
-        result.add(normalize(word))
+        if not issubclass(type(word), str):
+            raise TypeError(f"{side} words must be str, not {kind(word)}")
+        result.add(normalize(str.__str__(word)))
     return frozenset(result)
 
 
@@ -86,6 +85,11 @@ class BoolRules:
     @cached_property
     def _false_folded(self) -> frozenset[str]:
         return frozenset(fold(word) for word in self.false)
+
+    @cached_property
+    def _longest(self) -> int:
+        """Length of the longest folded word: longer folded input cannot match."""
+        return max(map(len, self._true_folded | self._false_folded), default=0)
 
     def __repr__(self) -> str:
         return f"BoolRules(true={sorted(self.true)!r}, false={sorted(self.false)!r})"

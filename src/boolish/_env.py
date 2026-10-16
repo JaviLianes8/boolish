@@ -48,7 +48,7 @@ def getenv_bool(
     ...     getenv_bool("FEATURE_X", False)
     ... except NotBooleanError as error:
     ...     print(error)
-    environment variable 'FEATURE_X': 'banana' is not a recognised boolean
+    environment variable 'FEATURE_X': a value of 6 characters is not a recognised boolean
     >>> del os.environ["FEATURE_X"]
     """
     raw = os.environ.get(name)

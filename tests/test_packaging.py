@@ -46,6 +46,7 @@ def test_the_package_has_no_runtime_dependencies() -> None:
         "boolish",
         "collections",
         "dataclasses",
+        "functools",
         "math",
         "os",
         "sys",

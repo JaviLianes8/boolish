@@ -5,6 +5,12 @@ from __future__ import annotations
 _PREVIEW = 32
 
 
+def kind(value: object) -> str:
+    """Name the type of ``value`` safely: escaped, and cut to 40 characters."""
+    name = str.__str__(type(value).__name__)[:40]
+    return "".join(ch if ch.isprintable() else ascii(ch)[1:-1] for ch in name)
+
+
 def preview(value: object) -> str:
     """Describe ``value`` for an error message in a short, bounded form.
 
@@ -12,18 +18,19 @@ def preview(value: object) -> str:
     any other type is named rather than printed, so a message never carries a whole
     payload and never runs a foreign ``__repr__``.
     """
-    if value is None or isinstance(value, bool):
+    # type() rather than isinstance(): a mock can fake its __class__.
+    cls = type(value)
+    if value is None or cls is bool:
         return repr(value)
-    if isinstance(value, str):
-        head = str.__getitem__(value, slice(None, _PREVIEW))
-        return str.__repr__(head) + ("..." if len(value) > _PREVIEW else "")
-    if isinstance(value, int):
-        if value.bit_length() > 64:
-            return f"an int of {value.bit_length()} bits"
-        return int.__repr__(value)
-    if isinstance(value, float):
+    if issubclass(cls, str):
+        text = str.__str__(value)
+        return repr(text[:_PREVIEW]) + ("..." if len(text) > _PREVIEW else "")
+    if issubclass(cls, int):
+        bits = int.bit_length(value)  # type: ignore[arg-type]
+        return f"an int of {bits} bits" if bits > 64 else int.__repr__(value)
+    if issubclass(cls, float):
         return float.__repr__(value)
-    return f"a value of type {type(value).__name__[:40]}"
+    return f"a value of type {kind(value)}"
 
 
 class BoolishError(ValueError):
@@ -49,7 +56,8 @@ class NotBooleanError(BoolishError):
 
     The offending value is kept, whole, on the ``value`` attribute; the message shows at
     most its first 32 characters. ``variable`` names the environment variable it came
-    from when :func:`~boolish.getenv_bool` raised it, and is ``None`` otherwise.
+    from when :func:`~boolish.getenv_bool` raised it, and is ``None`` otherwise; then the
+    message gives only the length of the value, which may be a secret.
 
     >>> from boolish import NotBooleanError, strtobool
     >>> try:
@@ -64,9 +72,15 @@ class NotBooleanError(BoolishError):
     def __init__(self, value: object, variable: str | None = None) -> None:
         self.value = value
         self.variable = variable
-        message = f"{preview(value)} is not a recognised boolean"
-        if variable is not None:
-            message = f"environment variable {preview(variable)}: {message}"
+        if variable is None:
+            message = f"{preview(value)} is not a recognised boolean"
+        else:
+            # The value of an environment variable may be a secret: give only its size.
+            size = len(str.__str__(value)) if issubclass(type(value), str) else 0
+            message = (
+                f"environment variable {preview(variable)}: a value of {size} characters"
+                " is not a recognised boolean"
+            )
         super().__init__(message)
 
     def __reduce__(self) -> tuple[type[NotBooleanError], tuple[object, str | None]]:

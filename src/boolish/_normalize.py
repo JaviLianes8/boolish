@@ -45,3 +45,22 @@ def fold(text: str) -> str:
     every code point (a test checks it). Uses the standard library only.
     """
     return str.strip(str.lower(_strip_marks(text)))
+
+
+def fold_within(text: str, limit: int) -> str | None:
+    """Return :func:`fold` of ``text``, or ``None`` once it must exceed ``limit``.
+
+    Folding stops as soon as the result is sure to hold more than ``limit`` non-space
+    characters, so hostile input that expands under NFKD costs no more work than the
+    longest vocabulary word needs. When it does not stop, the result equals ``fold``.
+    """
+    parts = []
+    seen = 0
+    text = str.strip(text)
+    for start in range(0, len(text), _CHUNK):
+        part = _strip_marks(text[start : start + _CHUNK])
+        seen += sum(1 for ch in part if not ch.isspace())
+        if seen > limit:
+            return None
+        parts.append(part)
+    return str.strip(str.lower("".join(parts)))

@@ -31,7 +31,8 @@ Every behaviour that differs from 0.1.0:
   `rules=CLASSIC` to keep the 0.1.0 words.
 - Errors are `NotBooleanError` (unrecognised input) and `BoolishError` (a bad
   ruleset), both still `ValueError`. Messages show at most the first 32 characters of
-  the input (0.1.0 echoed it whole); `getenv_bool` errors name the variable.
+  the input (0.1.0 echoed it whole); `getenv_bool` errors name the variable and give
+  only the length of its value, which may be a secret.
 - `strtobool` raises `TypeError` for a value that is not a `str`, with or without a
   default. In 0.1.0, `bytes` raised `ValueError` or returned the default, and other
   types raised `AttributeError`.
@@ -58,10 +59,13 @@ Every behaviour that differs from 0.1.0:
   the `ValueError` of `repr`; it now raises `NotBooleanError`.
 - `BoolRules` keeps its folded vocabularies out of the dataclass fields and the
   constructor (they were the public `true_folded` and `false_folded`).
-- Lenient folding also handles compatibility forms (full-width letters) and runs in
-  linear time on long input.
-- `to_bool` reads `int` and `float` subclasses by their value, so a subclass cannot
-  change the answer through `__eq__`; `strtobool` ignores overridden `strip`/`lower`.
+- Lenient folding also handles compatibility forms (full-width letters), runs in linear
+  time on long input, and stops as soon as the input cannot fit the longest word.
+- Subclasses of `str`, `int` and `float` are read by their plain value, whatever methods
+  they override; objects that only pretend to be one (a mock with a `spec`) are not
+  boolean. Type names in messages are escaped.
+- The command keeps its exit code when stdout or stderr is closed, escapes and bounds
+  argument errors, and prints `--help` on any console encoding.
 - `getenv_bool(name, rules=..., strict=...)` without a default now type-checks.
 - The version lives in one place; `pyproject.toml` reads it.
 
