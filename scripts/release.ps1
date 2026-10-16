@@ -15,6 +15,7 @@ try {
     if ($_.Exception.Response.StatusCode.value__ -ne 404) { throw }
 }
 
+Set-Location (Split-Path $PSScriptRoot -Parent)
 if (git status --porcelain) { throw "The working tree is not clean." }
 if ((git rev-parse --abbrev-ref HEAD) -ne "main") { throw "Release only from main." }
 & "$PSScriptRoot\check.ps1"

@@ -35,7 +35,7 @@ Every behaviour that differs from 0.1.0:
   only the length of its value, which may be a secret.
 - `strtobool` raises `TypeError` for a value that is not a `str`, with or without a
   default. In 0.1.0, `bytes` raised `ValueError` or returned the default, any object
-  with `strip` and `lower` methods was matched through them, and other types raised
+  whose `strip()` returned a `str` was matched through it, and other types raised
   `AttributeError`.
 - A `str` subclass is matched by its plain text; 0.1.0 called the subclass's own
   `strip` and `lower`, so an override could change the answer.
