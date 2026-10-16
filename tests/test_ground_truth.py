@@ -95,12 +95,12 @@ def source(name: str) -> str:
 def test_classic_is_exactly_the_tuples_in_cpython_3_11() -> None:
     import ast
 
-    tree = ast.parse(source("distutils-util-3.11.py"))
+    tree = ast.parse(source("distutils-util-3.11.py.txt"))
     func = next(
         node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "strtobool"
     )
     tuples = [node for node in ast.walk(func) if isinstance(node, ast.Tuple)]
-    true, false = ({ast.literal_eval(item) for item in node.elts} for node in tuples[:2])
+    true, false = (frozenset(ast.literal_eval(item) for item in node.elts) for node in tuples[:2])
     assert (CLASSIC.true, CLASSIC.false) == (true, false)
 
 

@@ -1,8 +1,16 @@
 """Unit tests for the argparse command line interface."""
 
+import io
+import os
+import subprocess
+import sys
+from pathlib import Path
+
 import pytest
 
 from boolish._cli import main
+
+SRC = Path(__file__).resolve().parent.parent / "src"
 
 
 def test_true_value_prints_true_and_exits_zero(capsys: pytest.CaptureFixture[str]) -> None:
@@ -74,3 +82,60 @@ def test_help_lists_runnable_examples(capsys: pytest.CaptureFixture[str]) -> Non
     assert "examples:" in out
     assert "boolish yes" in out
     assert "--lenient" in out
+
+
+def test_clashing_custom_words_are_an_error_with_exit_two(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["--true", "no", "yes"]) == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == "boolish: words marked both true and false: 'no'\n"
+
+
+def test_usage_errors_exit_two(capsys: pytest.CaptureFixture[str]) -> None:
+    for argv in ([], ["--rules", "klingon", "yes"], ["--strict", "--lenient", "yes"], ["a", "b"]):
+        with pytest.raises(SystemExit) as exc:
+            main(argv)
+        assert exc.value.code == 2
+    assert capsys.readouterr().out == ""
+
+
+def test_the_error_message_is_one_bounded_line(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["x" * 100_000]) == 2
+    err = capsys.readouterr().err
+    assert err == "boolish: '" + "x" * 32 + "'... is not a recognised boolean\n"
+
+
+def test_classic_rules_and_repeated_words(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["--rules", "classic", "enabled"]) == 2
+    assert main(["--true", "aye", "--true", "yarr", "--false", "nay", "YARR"]) == 0
+    assert main(["--rules", "classic", "--false", "nope", "nope"]) == 1
+    assert capsys.readouterr().out == "true\nfalse\n"
+
+
+def test_output_survives_a_stream_that_cannot_encode(monkeypatch: pytest.MonkeyPatch) -> None:
+    stream = io.TextIOWrapper(io.BytesIO(), encoding="ascii", newline="\n")
+    monkeypatch.setattr(sys, "stderr", stream)
+    assert main(["--rules", "multilingual", "Sí\u202e"]) == 2
+    stream.flush()
+    written = stream.buffer.getvalue()
+    assert written == b"boolish: 'S\\xed\\u202e' is not a recognised boolean\n"
+
+
+def test_python_dash_m_runs_the_same_interface() -> None:
+    env = {**os.environ, "PYTHONPATH": str(SRC), "PYTHONIOENCODING": "utf-8"}
+    run = subprocess.run(
+        [sys.executable, "-m", "boolish", "--lenient", "--rules", "multilingual", "NÃO"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=env,
+        timeout=60,
+    )
+    assert (run.returncode, run.stdout, run.stderr) == (1, "false\n", "")
+    bad = subprocess.run(
+        [sys.executable, "-m", "boolish", "maybe"], capture_output=True, text=True, env=env
+    )
+    assert (bad.returncode, bad.stdout) == (2, "")
+    assert bad.stderr.strip() == "boolish: 'maybe' is not a recognised boolean"

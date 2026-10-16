@@ -30,8 +30,6 @@ False
 False
 """
 
-from __future__ import annotations
-
 from boolish._coerce import BoolLike, is_falsy, is_truthy, to_bool
 from boolish._env import getenv_bool
 from boolish._errors import BoolishError, NotBooleanError

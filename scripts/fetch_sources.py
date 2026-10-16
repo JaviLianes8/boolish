@@ -29,7 +29,7 @@ YAML_LICENCE = "may be freely copied provided it is not modified (stated on the 
 SOURCES = {
     "yaml-1.1-bool.html": ("https://yaml.org/type/bool.html", YAML_LICENCE),
     "yaml-1.2.2.html": ("https://yaml.org/spec/1.2.2/", YAML_LICENCE),
-    "distutils-util-3.11.py": (f"{CPYTHON}/Lib/distutils/util.py", "PSF-2.0"),
+    "distutils-util-3.11.py.txt": (f"{CPYTHON}/Lib/distutils/util.py", "PSF-2.0"),
     "pep-0632.html": (
         "https://peps.python.org/pep-0632/",
         "public domain or CC0-1.0 (stated in the PEP)",

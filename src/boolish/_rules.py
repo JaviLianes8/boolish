@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Collection, Iterable
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 
 from boolish._errors import BoolishError, preview
@@ -30,14 +30,15 @@ def _listing(words: frozenset[str]) -> str:
     return ", ".join(preview(word) for word in shown) + (", ..." if len(words) > 10 else "")
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, init=False)
 class BoolRules:
     """Case-insensitive vocabularies for truthy and falsy strings.
 
-    Pass any collection of words; they are normalised (trimmed and lower-cased) on
-    construction, so a value only needs to match one once it has been stripped and
-    lower-cased too. In lenient mode the match also ignores accents, so ``"sí"`` in the
-    vocabulary matches the input ``"si"`` and the other way round.
+    Pass any iterable of words; they are normalised (trimmed and lower-cased) on
+    construction and kept as the ``frozenset`` attributes ``true`` and ``false``, so a
+    value only needs to match one once it has been stripped and lower-cased too. In
+    lenient mode the match also ignores accents, so ``"sí"`` in the vocabulary matches
+    the input ``"si"`` and the other way round.
 
     A word that appears in both ``true`` and ``false`` raises
     :class:`~boolish.BoolishError`, as does a pair that would collide once accents are
@@ -56,24 +57,28 @@ class BoolRules:
 
     __module__ = "boolish"
 
-    true: Collection[str] = _CLASSIC_TRUE
-    false: Collection[str] = _CLASSIC_FALSE
+    true: frozenset[str]
+    false: frozenset[str]
     _true_folded: frozenset[str] = field(init=False, compare=False, repr=False)
     _false_folded: frozenset[str] = field(init=False, compare=False, repr=False)
 
-    def __post_init__(self) -> None:
-        true = _words(self.true, "true")
-        false = _words(self.false, "false")
-        clash = true & false
+    def __init__(
+        self,
+        true: Iterable[str] = _CLASSIC_TRUE,
+        false: Iterable[str] = _CLASSIC_FALSE,
+    ) -> None:
+        true_words = _words(true, "true")
+        false_words = _words(false, "false")
+        clash = true_words & false_words
         if clash:
             raise BoolishError(f"words marked both true and false: {_listing(clash)}")
-        true_folded = frozenset(fold(word) for word in true)
-        false_folded = frozenset(fold(word) for word in false)
+        true_folded = frozenset(fold(word) for word in true_words)
+        false_folded = frozenset(fold(word) for word in false_words)
         folded_clash = true_folded & false_folded
         if folded_clash:
             raise BoolishError(f"words collide once accents are folded: {_listing(folded_clash)}")
-        object.__setattr__(self, "true", true)
-        object.__setattr__(self, "false", false)
+        object.__setattr__(self, "true", true_words)
+        object.__setattr__(self, "false", false_words)
         object.__setattr__(self, "_true_folded", true_folded)
         object.__setattr__(self, "_false_folded", false_folded)
 
@@ -98,8 +103,8 @@ class BoolRules:
         (True, True)
         """
         return BoolRules(
-            true=frozenset(self.true) | _words(true, "true"),
-            false=frozenset(self.false) | _words(false, "false"),
+            true=self.true | _words(true, "true"),
+            false=self.false | _words(false, "false"),
         )
 
 

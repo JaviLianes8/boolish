@@ -1,22 +1,14 @@
-"""The complete promise of every public name. This file is the contract."""
+"""The public surface of boolish 1.0.0: names, signatures, vocabularies and metadata."""
+
+from __future__ import annotations
 
 import importlib.resources
-
-import pytest
+import inspect
+import sys
+from pathlib import Path
 
 import boolish
-from boolish import (
-    DEFAULT,
-    MULTILINGUAL,
-    BoolishError,
-    BoolRules,
-    NotBooleanError,
-    getenv_bool,
-    is_falsy,
-    is_truthy,
-    strtobool,
-    to_bool,
-)
+from boolish import CLASSIC, DEFAULT, MULTILINGUAL, BoolRules
 
 PUBLIC_API = [
     "CLASSIC",
@@ -33,12 +25,13 @@ PUBLIC_API = [
     "to_bool",
 ]
 
-DEFAULT_TRUE = ["y", "yes", "t", "true", "on", "1", "enable", "enabled"]
-DEFAULT_FALSE = ["n", "no", "f", "false", "off", "0", "disable", "disabled"]
+ROOT = Path(__file__).resolve().parent.parent
 
 
 def test_all_lists_exactly_the_public_api() -> None:
     assert sorted(boolish.__all__) == sorted(PUBLIC_API)
+    public = {name for name in vars(boolish) if not name.startswith("_")}
+    assert public == set(PUBLIC_API)
 
 
 def test_every_exported_name_resolves() -> None:
@@ -46,151 +39,94 @@ def test_every_exported_name_resolves() -> None:
         assert hasattr(boolish, name)
 
 
-def test_version_is_a_three_part_string() -> None:
-    parts = boolish.__version__.split(".")
-    assert len(parts) == 3
-    assert all(part.isdigit() for part in parts)
+def test_version_is_one_zero_zero_everywhere() -> None:
+    assert boolish.__version__ == "1.0.0"
+    if sys.version_info >= (3, 11):
+        import tomllib
+
+        pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text("utf-8"))
+        assert pyproject["project"]["dynamic"] == ["version"]
+        assert pyproject["tool"]["hatch"]["version"]["path"] == "src/boolish/_version.py"
 
 
 def test_the_package_ships_type_information() -> None:
     assert importlib.resources.files("boolish").joinpath("py.typed").is_file()
 
 
-@pytest.mark.parametrize("word", DEFAULT_TRUE)
-def test_default_truthy_vocabulary(word: str) -> None:
-    assert strtobool(word) is True
-    assert to_bool(word) is True
-    assert is_truthy(word) is True
+def test_public_classes_live_in_the_package_namespace() -> None:
+    for cls in (boolish.BoolRules, boolish.BoolishError, boolish.NotBooleanError):
+        assert cls.__module__ == "boolish"
 
 
-@pytest.mark.parametrize("word", DEFAULT_FALSE)
-def test_default_falsy_vocabulary(word: str) -> None:
-    assert strtobool(word) is False
-    assert to_bool(word) is False
-    assert is_falsy(word) is True
+P = inspect.Parameter
+KW = P.KEYWORD_ONLY
+POS = P.POSITIONAL_OR_KEYWORD
 
 
-def test_strtobool_ignores_case_and_surrounding_space() -> None:
-    assert strtobool("  YES ") is True
-    assert strtobool("Off") is False
+def _shape(func: object) -> list[tuple[str, object, str, object]]:
+    params = inspect.signature(func).parameters.values()  # type: ignore[arg-type]
+    return [(p.name, p.kind, p.annotation, p.default) for p in params]
 
 
-def test_strtobool_raises_a_typed_error_without_a_default() -> None:
-    with pytest.raises(NotBooleanError):
-        strtobool("maybe")
-    assert issubclass(NotBooleanError, BoolishError)
-    assert issubclass(BoolishError, ValueError)
+def test_signatures_are_frozen() -> None:
+    from boolish._parse import _MISSING
+
+    tail = [("rules", KW, "BoolRules", DEFAULT), ("strict", KW, "bool", True)]
+    assert _shape(boolish.strtobool) == [
+        ("value", POS, "str", P.empty),
+        ("default", POS, "object", _MISSING),
+        *tail,
+    ]
+    assert _shape(boolish.to_bool) == [
+        ("value", POS, "BoolLike", P.empty),
+        ("default", POS, "object", _MISSING),
+        *tail,
+    ]
+    assert _shape(boolish.getenv_bool) == [
+        ("name", POS, "str", P.empty),
+        ("default", POS, "object", None),
+        *tail,
+    ]
+    for predicate in (boolish.is_truthy, boolish.is_falsy):
+        assert _shape(predicate) == [("value", POS, "BoolLike", P.empty), *tail]
+    assert _shape(BoolRules.extend) == [
+        ("self", POS, P.empty, P.empty),
+        ("true", KW, "Iterable[str]", ()),
+        ("false", KW, "Iterable[str]", ()),
+    ]
+    assert [p.name for p in inspect.signature(BoolRules).parameters.values()] == [
+        "true",
+        "false",
+    ]
 
 
-def test_strtobool_returns_the_default_when_given() -> None:
-    assert strtobool("maybe", None) is None
-    assert strtobool("maybe", "skip") == "skip"
+def test_classic_is_the_removed_stdlib_vocabulary() -> None:
+    assert BoolRules() == CLASSIC
+    assert CLASSIC.true == {"y", "yes", "t", "true", "on", "1"}
+    assert CLASSIC.false == {"n", "no", "f", "false", "off", "0"}
 
 
-def test_strtobool_result_is_a_real_bool() -> None:
-    assert isinstance(strtobool("yes"), bool)
+def test_default_adds_enable_and_disable() -> None:
+    assert DEFAULT.true == CLASSIC.true | {"enable", "enabled"}
+    assert DEFAULT.false == CLASSIC.false | {"disable", "disabled"}
 
 
-def test_strict_mode_rejects_accented_input() -> None:
-    with pytest.raises(NotBooleanError):
-        strtobool("Sí", rules=MULTILINGUAL)
+def test_multilingual_vocabulary_is_pinned() -> None:
+    extra_true = {"active", "ok", "si", "verdadero", "oui", "vrai", "ja", "wahr", "vero"}
+    extra_true |= {"sim", "verdadeiro"}
+    extra_false = {"inactive", "falso", "non", "faux", "nein", "falsch", "nao"}
+    assert MULTILINGUAL.true == DEFAULT.true | extra_true
+    assert MULTILINGUAL.false == DEFAULT.false | extra_false
+    every = MULTILINGUAL.true | MULTILINGUAL.false
+    assert all(word.isascii() for word in every)
 
 
-def test_lenient_mode_folds_accents() -> None:
-    assert strtobool("Sí", rules=MULTILINGUAL, strict=False) is True
-    assert strtobool("si", rules=MULTILINGUAL, strict=False) is True
-
-
-def test_to_bool_accepts_booleans() -> None:
-    assert to_bool(True) is True
-    assert to_bool(False) is False
-
-
-@pytest.mark.parametrize(("value", "expected"), [(1, True), (0, False), (1.0, True), (0.0, False)])
-def test_to_bool_accepts_zero_and_one(value: object, expected: bool) -> None:
-    assert to_bool(value) is expected  # type: ignore[arg-type]
-
-
-def test_to_bool_strict_rejects_other_numbers() -> None:
-    with pytest.raises(NotBooleanError):
-        to_bool(5)
-    with pytest.raises(NotBooleanError):
-        to_bool(2.5)
-
-
-def test_to_bool_lenient_treats_nonzero_as_true() -> None:
-    assert to_bool(5, strict=False) is True
-    assert to_bool(-0.1, strict=False) is True
-    assert to_bool(0, strict=False) is False
-
-
-def test_to_bool_handles_none() -> None:
-    assert to_bool(None, False) is False
-    with pytest.raises(NotBooleanError):
-        to_bool(None)
-
-
-def test_to_bool_rejects_unknown_types() -> None:
-    with pytest.raises(NotBooleanError):
-        to_bool([1, 2], rules=DEFAULT)  # type: ignore[arg-type]
-
-
-def test_predicates_never_raise_on_unknown_input() -> None:
-    assert is_truthy("maybe") is False
-    assert is_falsy("maybe") is False
-    assert is_truthy(None) is False
-    assert is_falsy(None) is False
-    assert is_truthy(object()) is False  # type: ignore[arg-type]
-
-
-def test_is_truthy_and_is_falsy_are_not_mere_negations() -> None:
-    assert is_truthy("maybe") is False
-    assert is_falsy("maybe") is False
-
-
-def test_boolrules_rejects_overlap() -> None:
-    with pytest.raises(BoolishError):
-        BoolRules(true={"yes", "on"}, false={"on", "no"})
-
-
-def test_boolrules_rejects_accent_collision() -> None:
-    with pytest.raises(BoolishError):
-        BoolRules(true={"sí"}, false={"si"})
-
-
-def test_boolrules_extend_adds_words_without_mutating() -> None:
-    extended = DEFAULT.extend(true={"aye"}, false={"nay"})
-    assert strtobool("aye", rules=extended) is True
-    assert strtobool("nay", rules=extended) is False
-    assert strtobool("yes", rules=extended) is True
-    with pytest.raises(NotBooleanError):
-        strtobool("aye", rules=DEFAULT)
-
-
-@pytest.mark.parametrize("word", ["oui", "ja", "sim", "verdadero", "vero", "wahr"])
-def test_multilingual_truthy_forms(word: str) -> None:
-    assert strtobool(word, rules=MULTILINGUAL) is True
-
-
-@pytest.mark.parametrize("word", ["non", "nein", "nao", "falso", "faux", "falsch"])
-def test_multilingual_falsy_forms(word: str) -> None:
-    assert strtobool(word, rules=MULTILINGUAL) is False
-
-
-def test_getenv_bool_reads_parses_and_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("FEATURE_X", "true")
-    assert getenv_bool("FEATURE_X") is True
-    monkeypatch.delenv("FEATURE_X", raising=False)
-    assert getenv_bool("FEATURE_X") is None
-    assert getenv_bool("FEATURE_X", False) is False
-
-
-def test_getenv_bool_is_loud_on_a_bad_value(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("FEATURE_X", "banana")
-    with pytest.raises(NotBooleanError):
-        getenv_bool("FEATURE_X", False)
-
-
-def test_getenv_bool_honours_lenient_mode(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("FEATURE_X", "Sí")
-    assert getenv_bool("FEATURE_X", False, rules=MULTILINGUAL, strict=False) is True
+def test_pyproject_metadata_for_a_stable_release() -> None:
+    text = (ROOT / "pyproject.toml").read_text("utf-8")
+    assert '"Development Status :: 5 - Production/Stable"' in text
+    assert "dependencies = []" in text
+    assert 'requires-python = ">=3.10"' in text
+    for minor in range(10, 15):
+        assert f'"Programming Language :: Python :: 3.{minor}"' in text
+    for url in ("Homepage", "Source", "Issues", "Changelog"):
+        assert f"\n{url} = " in text

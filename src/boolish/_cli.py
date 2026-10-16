@@ -10,7 +10,7 @@ from typing import TextIO
 
 from boolish._coerce import to_bool
 from boolish._errors import BoolishError, NotBooleanError
-from boolish._rules import DEFAULT, MULTILINGUAL, BoolRules
+from boolish._rules import CLASSIC, DEFAULT, MULTILINGUAL, BoolRules
 from boolish._version import __version__
 
 _EPILOG = """\
@@ -53,7 +53,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--rules",
-        choices=("default", "multilingual"),
+        choices=("classic", "default", "multilingual"),
         default="default",
         help="which built-in vocabulary to use (default: default)",
     )
@@ -86,7 +86,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _resolve_rules(name: str, true: Sequence[str], false: Sequence[str]) -> BoolRules:
-    base = MULTILINGUAL if name == "multilingual" else DEFAULT
+    base = {"classic": CLASSIC, "multilingual": MULTILINGUAL}.get(name, DEFAULT)
     if true or false:
         return base.extend(true=true, false=false)
     return base

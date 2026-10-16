@@ -4,18 +4,36 @@ build-backend = "hatchling.build"
 
 [project]
 name = "boolish"
-version = "0.2.0"
+dynamic = ["version"]
 description = "Typed, dependency-free replacement for the strtobool removed from the standard library"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Javier Lianes", email = "javier@lianes8studio.com" }]
-keywords = ["bool", "boolean", "strtobool", "parse", "environment", "config", "cli"]
+keywords = [
+    "bool",
+    "boolean",
+    "strtobool",
+    "distutils",
+    "parse",
+    "truthy",
+    "environment",
+    "config",
+    "cli",
+]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Libraries :: Python Modules",
     "Typing :: Typed",
 ]
 dependencies = []
@@ -28,14 +46,33 @@ dev = ["ruff", "mypy", "pytest", "build", "twine"]
 
 [project.urls]
 Homepage = "https://lianes8studio.com"
-Repository = "https://github.com/JaviLianes8/boolish"
+Source = "https://github.com/JaviLianes8/boolish"
 Issues = "https://github.com/JaviLianes8/boolish/issues"
 Changelog = "https://github.com/JaviLianes8/boolish/blob/main/CHANGELOG.md"
 LinkedIn = "https://www.linkedin.com/in/jlianes/"
 Funding = "https://buymeacoffee.com/jlianesglrs"
 
+[tool.hatch.version]
+path = "src/boolish/_version.py"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/boolish"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src",
+    "tests/*.py",
+    "tests/fixtures",
+    "tests/sources/MANIFEST.json",
+    "scripts",
+    "README.md",
+    "GUIDE.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "LICENSE",
+    "pyproject.toml",
+    "requirements-dev.txt",
+]
 
 [tool.ruff]
 line-length = 100
