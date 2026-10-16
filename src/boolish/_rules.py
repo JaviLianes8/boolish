@@ -5,8 +5,29 @@ from __future__ import annotations
 from collections.abc import Collection, Iterable
 from dataclasses import dataclass, field
 
-from boolish._errors import BoolishError
+from boolish._errors import BoolishError, preview
 from boolish._normalize import fold, normalize
+
+_CLASSIC_TRUE = frozenset({"y", "yes", "t", "true", "on", "1"})
+_CLASSIC_FALSE = frozenset({"n", "no", "f", "false", "off", "0"})
+
+
+def _words(words: Iterable[str], side: str) -> frozenset[str]:
+    """Normalise a vocabulary, refusing a bare string or a non-string word."""
+    if isinstance(words, str | bytes | bytearray):
+        kind = type(words).__name__
+        raise TypeError(f"{side} must be a collection of words, not a single {kind}")
+    result = set()
+    for word in words:
+        if not isinstance(word, str):
+            raise TypeError(f"{side} words must be str, not {type(word).__name__[:40]}")
+        result.add(normalize(word))
+    return frozenset(result)
+
+
+def _listing(words: frozenset[str]) -> str:
+    shown = sorted(words)[:10]
+    return ", ".join(preview(word) for word in shown) + (", ..." if len(words) > 10 else "")
 
 
 @dataclass(frozen=True)
@@ -18,30 +39,46 @@ class BoolRules:
     lower-cased too. In lenient mode the match also ignores accents, so ``"sí"`` in the
     vocabulary matches the input ``"si"`` and the other way round.
 
-    A word that appears in both ``true`` and ``false`` is rejected, as is a pair that
-    would collide once accents are folded (that would make lenient matching ambiguous).
+    A word that appears in both ``true`` and ``false`` raises
+    :class:`~boolish.BoolishError`, as does a pair that would collide once accents are
+    folded (lenient matching would be ambiguous). A bare string instead of a collection,
+    or a word that is not a string, raises ``TypeError``. With no arguments the
+    vocabulary is :data:`~boolish.CLASSIC`, the removed stdlib function's twelve words.
+
+    >>> rules = BoolRules(true={"Up"}, false={"down"})
+    >>> sorted(rules.true), sorted(rules.false)
+    (['up'], ['down'])
+    >>> BoolRules() == CLASSIC
+    True
+    >>> BoolRules(true=["Yes", "on"], false=["off"])
+    BoolRules(true=['on', 'yes'], false=['off'])
     """
 
-    true: Collection[str] = frozenset({"y", "yes", "t", "true", "on", "1"})
-    false: Collection[str] = frozenset({"n", "no", "f", "false", "off", "0"})
-    true_folded: frozenset[str] = field(default=frozenset(), compare=False, repr=False)
-    false_folded: frozenset[str] = field(default=frozenset(), compare=False, repr=False)
+    __module__ = "boolish"
+
+    true: Collection[str] = _CLASSIC_TRUE
+    false: Collection[str] = _CLASSIC_FALSE
+    _true_folded: frozenset[str] = field(init=False, compare=False, repr=False)
+    _false_folded: frozenset[str] = field(init=False, compare=False, repr=False)
 
     def __post_init__(self) -> None:
-        true = frozenset(normalize(word) for word in self.true)
-        false = frozenset(normalize(word) for word in self.false)
+        true = _words(self.true, "true")
+        false = _words(self.false, "false")
         clash = true & false
         if clash:
-            raise BoolishError(f"words marked both true and false: {sorted(clash)}")
+            raise BoolishError(f"words marked both true and false: {_listing(clash)}")
         true_folded = frozenset(fold(word) for word in true)
         false_folded = frozenset(fold(word) for word in false)
         folded_clash = true_folded & false_folded
         if folded_clash:
-            raise BoolishError(f"words collide once accents are folded: {sorted(folded_clash)}")
+            raise BoolishError(f"words collide once accents are folded: {_listing(folded_clash)}")
         object.__setattr__(self, "true", true)
         object.__setattr__(self, "false", false)
-        object.__setattr__(self, "true_folded", true_folded)
-        object.__setattr__(self, "false_folded", false_folded)
+        object.__setattr__(self, "_true_folded", true_folded)
+        object.__setattr__(self, "_false_folded", false_folded)
+
+    def __repr__(self) -> str:
+        return f"BoolRules(true={sorted(self.true)!r}, false={sorted(self.false)!r})"
 
     def extend(
         self,
@@ -53,65 +90,47 @@ class BoolRules:
 
         The original is left untouched (rulesets are frozen). Use it to layer a few
         custom words on top of :data:`DEFAULT` or :data:`MULTILINGUAL` without rebuilding
-        the vocabulary by hand::
+        the vocabulary by hand. The same checks as the constructor apply.
 
-            DEFAULT.extend(true={"aye"}, false={"nay"})
+        >>> from boolish import DEFAULT, strtobool
+        >>> pirate = DEFAULT.extend(true={"aye"}, false={"nay"})
+        >>> strtobool("Aye", rules=pirate), strtobool("yes", rules=pirate)
+        (True, True)
         """
         return BoolRules(
-            true=frozenset(self.true) | {normalize(word) for word in true},
-            false=frozenset(self.false) | {normalize(word) for word in false},
+            true=frozenset(self.true) | _words(true, "true"),
+            false=frozenset(self.false) | _words(false, "false"),
         )
 
 
-DEFAULT = BoolRules(
-    true=frozenset({"y", "yes", "t", "true", "on", "1", "enable", "enabled"}),
-    false=frozenset({"n", "no", "f", "false", "off", "0", "disable", "disabled"}),
-)
+CLASSIC = BoolRules()
+
+DEFAULT = CLASSIC.extend(true={"enable", "enabled"}, false={"disable", "disabled"})
 
 # Vocabularies are stored in their unaccented (ASCII) form on purpose. Strict matching
 # needs the accents removed by the writer, while accented input such as "si" written
 # "sí" resolves in lenient mode, where accents are folded before the lookup.
-MULTILINGUAL = BoolRules(
-    true=frozenset(
-        {
-            "y",
-            "yes",
-            "t",
-            "true",
-            "on",
-            "1",
-            "enable",
-            "enabled",
-            "active",
-            "ok",
-            "si",
-            "verdadero",  # Spanish
-            "oui",
-            "vrai",  # French
-            "ja",
-            "wahr",  # German
-            "vero",  # Italian
-            "sim",
-            "verdadeiro",  # Portuguese
-        }
-    ),
-    false=frozenset(
-        {
-            "n",
-            "no",
-            "f",
-            "false",
-            "off",
-            "0",
-            "disable",
-            "disabled",
-            "inactive",
-            "falso",  # Spanish and Portuguese
-            "non",
-            "faux",  # French
-            "nein",
-            "falsch",  # German
-            "nao",  # Portuguese
-        }
-    ),
+MULTILINGUAL = DEFAULT.extend(
+    true={
+        "active",
+        "ok",
+        "si",  # Spanish and Italian
+        "verdadero",  # Spanish
+        "oui",
+        "vrai",  # French
+        "ja",
+        "wahr",  # German
+        "vero",  # Italian
+        "sim",
+        "verdadeiro",  # Portuguese
+    },
+    false={
+        "inactive",
+        "falso",  # Spanish, Italian and Portuguese
+        "non",
+        "faux",  # French
+        "nein",
+        "falsch",  # German
+        "nao",  # Portuguese
+    },
 )

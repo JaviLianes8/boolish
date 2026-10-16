@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from collections.abc import Sequence
+from typing import TextIO
 
 from boolish._coerce import to_bool
-from boolish._errors import NotBooleanError
+from boolish._errors import BoolishError, NotBooleanError
 from boolish._rules import DEFAULT, MULTILINGUAL, BoolRules
 from boolish._version import __version__
 
@@ -23,7 +25,7 @@ examples:
 
 The exit code is 0 when the value is true and 1 when it is false, so the command drops
 straight into a shell conditional. An unrecognised value is an error: the message goes
-to stderr and the exit code is also 1.
+to stderr and the exit code is 2, as for a usage error.
 """
 
 
@@ -90,22 +92,40 @@ def _resolve_rules(name: str, true: Sequence[str], false: Sequence[str]) -> Bool
     return base
 
 
+def _write(stream: TextIO, text: str) -> None:
+    """Write a line, escaping what the stream's encoding cannot show."""
+    encoding = getattr(stream, "encoding", None) or "ascii"
+    safe = text.encode(encoding, "backslashreplace").decode(encoding, "replace")
+    try:
+        stream.write(safe + "\n")
+        stream.flush()
+    except BrokenPipeError:
+        # The reader went away; the exit code still carries the answer.
+        devnull = os.open(os.devnull, os.O_WRONLY)
+        os.dup2(devnull, stream.fileno())
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the command line interface and return its exit code.
 
     Prints ``true`` or ``false`` (unless ``--quiet``) and returns ``0`` for true and
-    ``1`` for false. An unrecognised value prints a message to stderr and returns ``1``.
+    ``1`` for false. An unrecognised value prints a message to stderr and returns ``2``;
+    usage errors exit ``2`` through ``argparse``.
     """
     parser = _build_parser()
     args = parser.parse_args(argv)
-    rules = _resolve_rules(args.rules, args.true, args.false)
+    try:
+        rules = _resolve_rules(args.rules, args.true, args.false)
+    except BoolishError as error:
+        _write(sys.stderr, f"boolish: {error}")
+        return 2
     try:
         result = to_bool(args.value, rules=rules, strict=args.strict)
     except NotBooleanError as error:
-        print(f"boolish: {error}", file=sys.stderr)
-        return 1
+        _write(sys.stderr, f"boolish: {error}")
+        return 2
     if not args.quiet:
-        print("true" if result else "false")
+        _write(sys.stdout, "true" if result else "false")
     return 0 if result else 1
 
 

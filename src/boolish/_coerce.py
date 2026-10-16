@@ -16,11 +16,13 @@ BoolLike = bool | int | float | str | None
 
 def _coerce_number(value: int | float, strict: bool) -> bool | None:
     """Map a number to a bool, or ``None`` when it is not boolean-ish."""
-    if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+    # The base-class methods read the plain value, so a subclass cannot lie about it.
+    number = float.__float__(value) if isinstance(value, float) else int.__int__(value)
+    if isinstance(number, float) and not math.isfinite(number):
         return None
-    if value == 0:
+    if number == 0:
         return False
-    if value == 1:
+    if number == 1:
         return True
     if not strict:
         return True

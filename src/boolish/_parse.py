@@ -33,9 +33,9 @@ def match_string(value: str, rules: BoolRules, strict: bool) -> bool | None:
         return False
     if not strict:
         folded = fold(value)
-        if folded in rules.true_folded:
+        if folded in rules._true_folded:
             return True
-        if folded in rules.false_folded:
+        if folded in rules._false_folded:
             return False
     return None
 
@@ -60,7 +60,8 @@ def strtobool(
     Matching ignores surrounding space and case. With no ``default`` an unrecognised
     value raises :class:`~boolish.NotBooleanError` (a ``ValueError`` subclass); pass a
     ``default`` to get it back instead. The result is a real ``bool`` (the stdlib version
-    returned ``1``/``0``).
+    returned ``1``/``0``). A ``value`` that is not a ``str`` raises ``TypeError``, with
+    or without a default: that is a programming error, not unrecognised input.
 
     Set ``strict=False`` to also fold accents before matching, so ``"Sí"`` resolves
     against a rule spelled ``"si"``. Pass ``rules`` to swap the vocabulary, for example
@@ -73,6 +74,8 @@ def strtobool(
     >>> strtobool("maybe", False)
     False
     """
+    if not isinstance(value, str):
+        raise TypeError(f"strtobool expects a str, not {type(value).__name__[:40]}")
     result = match_string(value, rules, strict)
     if result is not None:
         return result

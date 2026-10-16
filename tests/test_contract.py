@@ -19,6 +19,7 @@ from boolish import (
 )
 
 PUBLIC_API = [
+    "CLASSIC",
     "BoolLike",
     "BoolRules",
     "BoolishError",

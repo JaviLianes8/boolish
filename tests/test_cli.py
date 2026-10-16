@@ -26,11 +26,11 @@ def test_quiet_prints_nothing_but_keeps_the_exit_code(
     assert captured.out == ""
 
 
-def test_unrecognised_value_goes_to_stderr_and_exits_one(
+def test_unrecognised_value_goes_to_stderr_and_exits_two(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     code = main(["banana"])
-    assert code == 1
+    assert code == 2
     captured = capsys.readouterr()
     assert captured.out == ""
     assert "banana" in captured.err
@@ -43,7 +43,7 @@ def test_lenient_folds_accents(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 def test_strict_rejects_accents(capsys: pytest.CaptureFixture[str]) -> None:
-    assert main(["--rules", "multilingual", "Sí"]) == 1
+    assert main(["--rules", "multilingual", "Sí"]) == 2
     assert "Sí" in capsys.readouterr().err
 
 
