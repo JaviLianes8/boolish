@@ -1,10 +1,16 @@
-# Build and upload to PyPI. Run scripts/check.ps1 first.
-# The name must not already exist on PyPI; the token is read from a secret store, never git.
+# Build and upload to PyPI. Run from a clean clone of main, after scripts/check.ps1.
+# The token is read from a secret store at release time, never from git.
 $ErrorActionPreference = "Stop"
 
+function Step([string]$name, [scriptblock]$command) {
+    & $command
+    if ($LASTEXITCODE -ne 0) { throw "$name failed with exit code $LASTEXITCODE" }
+}
+
+$version = (Select-String -Path src/boolish/_version.py -Pattern '__version__ = "(.+)"').Matches[0].Groups[1].Value
 try {
-    Invoke-WebRequest -UseBasicParsing "https://pypi.org/pypi/boolish/json" | Out-Null
-    throw "The name 'boolish' already exists on PyPI. Choose another before publishing."
+    Invoke-WebRequest -UseBasicParsing "https://pypi.org/pypi/boolish/$version/json" | Out-Null
+    throw "boolish $version is already on PyPI. Bump the version first."
 } catch [System.Net.WebException], [Microsoft.PowerShell.Commands.HttpResponseException] {
     if ($_.Exception.Response.StatusCode.value__ -ne 404) { throw }
 }
@@ -18,9 +24,9 @@ if (-not $token) {
 }
 
 Remove-Item -Recurse -Force dist -ErrorAction SilentlyContinue
-python -m build
-python -m twine check dist/*
+Step "build" { python -m build }
+Step "twine check" { python -m twine check --strict dist/* }
 
 $env:TWINE_USERNAME = "__token__"
 $env:TWINE_PASSWORD = $token
-try { python -m twine upload dist/* } finally { Remove-Item Env:\TWINE_PASSWORD -ErrorAction SilentlyContinue }
+try { Step "upload" { python -m twine upload dist/* } } finally { Remove-Item Env:\TWINE_PASSWORD -ErrorAction SilentlyContinue }

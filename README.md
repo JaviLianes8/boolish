@@ -1,9 +1,10 @@
 # boolish
 
-Interpret loose, human boolean-ish strings and values as a real `bool`. A typed,
-dependency-free stand-in for `distutils.util.strtobool`, which was removed from the
-standard library in Python 3.12, with a broader coercer, non-raising predicates, a
-multilingual vocabulary and a command line interface.
+Read loose, human boolean-ish strings and values as a real `bool`. A typed,
+dependency-free stand-in for `distutils.util.strtobool`, which Python deprecated in 3.10
+and removed in 3.12 ([PEP 632](https://peps.python.org/pep-0632/)), plus a broader
+coercer, non-raising predicates, an environment helper, a multilingual vocabulary and a
+command line tool.
 
 ## Install
 
@@ -11,107 +12,96 @@ multilingual vocabulary and a command line interface.
 pip install boolish
 ```
 
-## Usage
+Python 3.10 or newer, no dependencies.
 
-```python
-from boolish import strtobool
+## Quick start
 
-strtobool("yes")  # True
-strtobool("Off")  # False
-strtobool("  1 ")  # True  (space and case are ignored)
-strtobool("maybe")  # NotBooleanError (a ValueError subclass)
+```pycon
+>>> from boolish import strtobool
+>>> strtobool("yes"), strtobool("  Off "), strtobool("enabled")
+(True, False, True)
+>>> strtobool("maybe", False)
+False
+>>> strtobool("maybe")
+Traceback (most recent call last):
+...
+boolish.NotBooleanError: 'maybe' is not a recognised boolean
 ```
 
-Give a default to get it back instead of an error:
+`NotBooleanError` subclasses `ValueError`, so code written for the stdlib function keeps
+catching it. Coerce more than strings with `to_bool`, or ask without ever raising:
 
-```python
-strtobool("maybe", False)  # False
+```pycon
+>>> from boolish import is_falsy, is_truthy, to_bool
+>>> to_bool(1), to_bool(0.0), to_bool("on"), to_bool(None, False)
+(True, False, True, False)
+>>> is_truthy("maybe"), is_falsy("maybe"), is_falsy("no")
+(False, False, True)
 ```
 
-Coerce more than strings with `to_bool`. It accepts `bool`, `int`, `float`, `str` and
-`None`:
+Read a flag from the environment. Unset gives the default; a set but unreadable value
+raises, naming the variable, so a misconfigured flag fails loudly:
 
-```python
-from boolish import to_bool
-
-to_bool(1)  # True
-to_bool(0.0)  # False
-to_bool("on")  # True
-to_bool(None, False)  # False
+```pycon
+>>> import os
+>>> from boolish import getenv_bool
+>>> os.environ["CACHE"] = "off"
+>>> getenv_bool("CACHE", True), getenv_bool("UNSET_FLAG_FOR_README", True)
+(False, True)
 ```
 
-Use the non-raising predicates where unknown input should just count as "no":
+Pick or build a vocabulary. `CLASSIC` is exactly the stdlib function's twelve words,
+`DEFAULT` adds `enable(d)`/`disable(d)`, `MULTILINGUAL` adds Spanish, French, German,
+Italian and Portuguese; lenient mode (`strict=False`) folds accents:
 
-```python
-from boolish import is_truthy, is_falsy
-
-is_truthy("yes")  # True
-is_truthy("maybe")  # False
-is_falsy("off")  # True
-```
-
-Go lenient to fold accents and treat any non-zero number as true:
-
-```python
-from boolish import MULTILINGUAL, strtobool, to_bool
-
-strtobool("Sí", rules=MULTILINGUAL, strict=False)  # True
-to_bool(5, strict=False)  # True
-```
-
-Read a flag straight from the environment. A missing variable falls back to the default;
-a set-but-nonsense value raises, so a misconfigured flag fails loudly:
-
-```python
-from boolish import getenv_bool
-
-getenv_bool("ENABLE_CACHE", False)
-```
-
-Bring your own vocabulary, or extend a built-in one:
-
-```python
-from boolish import BoolRules, DEFAULT, strtobool
-
-spanish = BoolRules(true={"sí", "verdadero"}, false={"no", "falso"})
-strtobool("SÍ", rules=spanish)  # True
-
-pirate = DEFAULT.extend(true={"aye"}, false={"nay"})
-strtobool("aye", rules=pirate)  # True
+```pycon
+>>> from boolish import CLASSIC, DEFAULT, MULTILINGUAL
+>>> strtobool("enabled", None, rules=CLASSIC) is None
+True
+>>> strtobool("Sí", rules=MULTILINGUAL, strict=False), strtobool("nein", rules=MULTILINGUAL)
+(True, False)
+>>> pirate = DEFAULT.extend(true={"aye"}, false={"nay"})
+>>> strtobool("AYE", rules=pirate)
+True
 ```
 
 ## Command line
 
-Installing the package adds a `boolish` console script. It prints `true` or `false` and
-sets the exit code (`0` for true, `1` for false), so it drops into shell conditionals.
-
-```
-boolish yes                              # prints "true", exits 0
-boolish --quiet on                       # prints nothing, exits 0
-boolish --lenient --rules multilingual Si
-boolish --true aye --false nay aye
-
-if boolish --quiet "$FLAG"; then echo enabled; fi
+```console
+$ boolish yes
+true
+$ boolish --rules multilingual --lenient NÃO
+false
+$ boolish --true aye --false nay aye
+true
 ```
 
-Run `boolish --help` for every option and more runnable examples.
+The exit code is `0` for true, `1` for false and `2` for an unrecognised value or a
+usage error, so `if boolish --quiet "$FLAG"; then ...; fi` works in a shell.
+`python -m boolish` runs the same tool.
 
 ## Why
 
-The standard library's `strtobool` was the quiet default for reading boolean flags and
-environment variables. It was deprecated in 3.10 and removed in 3.12, and the dedicated
-packages that filled the gap have gone unmaintained for years. This keeps the same idea
-small: real `bool` results, type hints, no dependencies, and the helpers most projects
-ended up writing by hand.
+`distutils.util.strtobool` was the quiet default for reading flags. It returned `1` or
+`0` rather than a `bool`, did not ignore surrounding spaces, and is gone since Python
+3.12. Other packages fill part of the gap: setuptools keeps a copy in its private
+`setuptools._distutils.util`; python-strtobool 1.0.3 copies the function and returns a
+`bool`; str2bool (last release 1.1, December 2017) knows no `on`/`off` and returns
+`None` for unknown input. boolish is checked word by word against the stdlib function,
+setuptools, python-strtobool, `configparser`, click, PyYAML (YAML 1.1) and ruamel.yaml
+(YAML 1.2) and never gives an answer that contradicts any of them; it adds typed results
+and errors, defaults, non-string input, an environment helper and a CLI.
 
 ## Learn more
 
-- [GUIDE.md](GUIDE.md) walks through parsing, modes, custom vocabularies, the environment
-  helper and the CLI.
+- [GUIDE](https://github.com/JaviLianes8/boolish/blob/main/GUIDE.md): modes, vocabularies,
+  errors, the CLI and how boolish compares with other parsers.
+- [CHANGELOG](https://github.com/JaviLianes8/boolish/blob/main/CHANGELOG.md): what changed
+  in each release, including the upgrade notes for 1.0.0.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](https://github.com/JaviLianes8/boolish/blob/main/LICENSE).
 
 ## Links
 

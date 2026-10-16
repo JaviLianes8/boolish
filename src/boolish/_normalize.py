@@ -15,9 +15,24 @@ def normalize(text: str) -> str:
     return str.lower(str.strip(text))
 
 
+_CHUNK = 1024
+
+
 def _strip_marks(text: str) -> str:
-    decomposed = unicodedata.normalize("NFKD", text)
-    return "".join(ch for ch in decomposed if not unicodedata.combining(ch))
+    """Decompose ``text`` (NFKD) and drop every combining character.
+
+    CPython's ``normalize`` slows down more than linearly on long runs of marks, so the
+    text goes through in chunks. That gives the same result as one call: decomposition
+    is per character, and the reordering NFKD adds only moves combining characters,
+    which are all dropped here.
+    """
+    if text.isascii():
+        return text
+    parts = []
+    for start in range(0, len(text), _CHUNK):
+        decomposed = unicodedata.normalize("NFKD", text[start : start + _CHUNK])
+        parts.append("".join(ch for ch in decomposed if not unicodedata.combining(ch)))
+    return "".join(parts)
 
 
 def fold(text: str) -> str:
