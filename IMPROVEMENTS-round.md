@@ -1,5 +1,8 @@
 # boolish improvement round
 
+This was the plan of the 0.2.0 round. Version 1.0.0 changed some of the behaviour it
+describes; the CHANGELOG lists every difference.
+
 A ranked list of substantial, coherent improvements for this round. Every item is
 additive: the existing public API (`strtobool`, `getenv_bool`, `BoolRules`, `DEFAULT`)
 keeps its exact signatures and behaviour, so nothing downstream breaks.

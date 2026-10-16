@@ -16,11 +16,16 @@ BoolLike = bool | int | float | str | None
 
 def _coerce_number(value: int | float, strict: bool) -> bool | None:
     """Map a number to a bool, or ``None`` when it is not boolean-ish."""
-    if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+    # The base-class methods read the plain value, so a subclass cannot lie about it.
+    if issubclass(type(value), float):
+        number: int | float = float.__float__(value)
+    else:
+        number = int.__int__(value)  # type: ignore[arg-type]
+    if isinstance(number, float) and not math.isfinite(number):
         return None
-    if value == 0:
+    if number == 0:
         return False
-    if value == 1:
+    if number == 1:
         return True
     if not strict:
         return True
@@ -29,12 +34,14 @@ def _coerce_number(value: int | float, strict: bool) -> bool | None:
 
 def _resolve(value: object, rules: BoolRules, strict: bool) -> bool | None:
     """Return the bool meaning of any value, or ``None`` if it has none."""
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, int | float):
-        return _coerce_number(value, strict)
-    if isinstance(value, str):
-        return match_string(value, rules, strict)
+    # type() rather than isinstance(): a mock can fake its __class__.
+    cls = type(value)
+    if cls is bool:
+        return value is True
+    if issubclass(cls, int | float):
+        return _coerce_number(value, strict)  # type: ignore[arg-type]
+    if issubclass(cls, str):
+        return match_string(str.__str__(value), rules, strict)
     return None
 
 
@@ -64,6 +71,7 @@ def to_bool(
     In lenient mode (``strict=False``) accents are folded for strings and any non-zero,
     finite number counts as ``True``.
 
+    >>> from boolish import to_bool
     >>> to_bool(1)
     True
     >>> to_bool("off")
@@ -85,6 +93,7 @@ def is_truthy(value: BoolLike, *, rules: BoolRules = DEFAULT, strict: bool = Tru
     Anything unknown, including ``None`` and unmatched strings, is ``False``. Handy in an
     ``if`` where an unparseable value should simply count as "no".
 
+    >>> from boolish import is_truthy
     >>> is_truthy("yes")
     True
     >>> is_truthy("maybe")
@@ -99,6 +108,7 @@ def is_falsy(value: BoolLike, *, rules: BoolRules = DEFAULT, strict: bool = True
     Anything unknown, including ``None`` and unmatched strings, is ``False``. It is the
     mirror of :func:`is_truthy`, not its negation.
 
+    >>> from boolish import is_falsy
     >>> is_falsy("off")
     True
     >>> is_falsy("maybe")
