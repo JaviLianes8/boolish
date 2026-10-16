@@ -40,7 +40,8 @@ def fold(text: str) -> str:
 
     Compatibility forms are decomposed (full-width letters read as their ASCII forms) and
     combining marks removed, so ``"Sí"`` and ``"OUI"`` fold to ``"si"`` and ``"oui"``.
-    Marks are stripped again after lower-casing because lower-casing can add one (the
-    Turkish dotted capital I). Uses the standard library only.
+    Decomposing before lower-casing matters: the Turkish dotted capital I lower-cases to
+    ``i`` plus a mark, but decomposes to a plain ``I`` first. Folding is idempotent over
+    every code point (a test checks it). Uses the standard library only.
     """
-    return str.strip(_strip_marks(str.lower(_strip_marks(text))))
+    return str.strip(str.lower(_strip_marks(text)))

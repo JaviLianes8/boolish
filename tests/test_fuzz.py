@@ -163,7 +163,7 @@ def _reference_fold(text: str) -> str:
         decomposed = unicodedata.normalize("NFKD", value)
         return "".join(ch for ch in decomposed if not unicodedata.combining(ch))
 
-    return strip(strip(text).lower()).strip()
+    return strip(text).lower().strip()
 
 
 @pytest.mark.parametrize("seed", SEEDS)
@@ -172,3 +172,11 @@ def test_chunked_folding_equals_whole_string_folding(seed: int) -> None:
     for _ in range(200):
         text = "".join(_text(rng) for _ in range(rng.randint(1, 700)))
         assert fold(text) == _reference_fold(text)
+
+
+def test_folding_every_code_point_is_idempotent_and_mark_free() -> None:
+    every = "".join(chr(cp) for cp in range(0x110000) if not 0xD800 <= cp <= 0xDFFF)
+    folded = fold(every)
+    assert fold(folded) == folded
+    assert not [ch for ch in folded if unicodedata.combining(ch)]
+    assert fold(chr(0x130)) == "i"
