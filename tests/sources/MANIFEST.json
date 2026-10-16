@@ -1,0 +1,72 @@
+{
+ "cldr-posix-de.json": {
+  "fetched": "2026-10-16",
+  "licence": "Unicode-3.0",
+  "sha256": "c59f5bae36ee83cff2afefd2bc2af6b67996195e00a01a769d8bf02b758b4baa",
+  "size": 205,
+  "url": "https://raw.githubusercontent.com/unicode-org/cldr-json/91c267402229a59e3ef2774544f001bf959e8809/cldr-json/cldr-misc-full/main/de/posix.json"
+ },
+ "cldr-posix-en.json": {
+  "fetched": "2026-10-16",
+  "licence": "Unicode-3.0",
+  "sha256": "213cfc98f0320eb5c0372ad64be4a120c46f50622c03711ecf6300eeb3a9bd95",
+  "size": 204,
+  "url": "https://raw.githubusercontent.com/unicode-org/cldr-json/91c267402229a59e3ef2774544f001bf959e8809/cldr-json/cldr-misc-full/main/en/posix.json"
+ },
+ "cldr-posix-es.json": {
+  "fetched": "2026-10-16",
+  "licence": "Unicode-3.0",
+  "sha256": "2d6f6c4dcc6343ee040bdbbb2d5da96757dfd71f16d9818ec957b2c0b5b48891",
+  "size": 204,
+  "url": "https://raw.githubusercontent.com/unicode-org/cldr-json/91c267402229a59e3ef2774544f001bf959e8809/cldr-json/cldr-misc-full/main/es/posix.json"
+ },
+ "cldr-posix-fr.json": {
+  "fetched": "2026-10-16",
+  "licence": "Unicode-3.0",
+  "sha256": "9ab8b029688007e8a97024486a5e08bceb43e6ab6515f3c634bb01bf855964ce",
+  "size": 205,
+  "url": "https://raw.githubusercontent.com/unicode-org/cldr-json/91c267402229a59e3ef2774544f001bf959e8809/cldr-json/cldr-misc-full/main/fr/posix.json"
+ },
+ "cldr-posix-it.json": {
+  "fetched": "2026-10-16",
+  "licence": "Unicode-3.0",
+  "sha256": "615e34fef90efd7bde020952b065cfc3487bd888ed0e8924f16a5b6637692031",
+  "size": 204,
+  "url": "https://raw.githubusercontent.com/unicode-org/cldr-json/91c267402229a59e3ef2774544f001bf959e8809/cldr-json/cldr-misc-full/main/it/posix.json"
+ },
+ "cldr-posix-pt.json": {
+  "fetched": "2026-10-16",
+  "licence": "Unicode-3.0",
+  "sha256": "2679d3f15abddb583385bd9eedee821860980eb6855e460fa34cd34bae115160",
+  "size": 206,
+  "url": "https://raw.githubusercontent.com/unicode-org/cldr-json/91c267402229a59e3ef2774544f001bf959e8809/cldr-json/cldr-misc-full/main/pt/posix.json"
+ },
+ "distutils-util-3.11.py": {
+  "fetched": "2026-10-16",
+  "licence": "PSF-2.0",
+  "sha256": "5a759d80dc2bebdda1bc4461ddc9a335c378e3a25e4da20218cdce07686824ae",
+  "size": 21032,
+  "url": "https://raw.githubusercontent.com/python/cpython/59d1bd5f0beb95f26771a96fe11eac1653d69ffa/Lib/distutils/util.py"
+ },
+ "pep-0632.html": {
+  "fetched": "2026-10-16",
+  "licence": "public domain or CC0-1.0 (stated in the PEP)",
+  "sha256": "184166968b142772b07f24128f51f3430249b8080e598032c4eea396354a2873",
+  "size": 26140,
+  "url": "https://peps.python.org/pep-0632/"
+ },
+ "yaml-1.1-bool.html": {
+  "fetched": "2026-10-16",
+  "licence": "may be freely copied provided it is not modified (stated on the page)",
+  "sha256": "ca85ca4c96101f5b697d27f8f8c4fc8d0df147120061f83985de5e670cae2f25",
+  "size": 5995,
+  "url": "https://yaml.org/type/bool.html"
+ },
+ "yaml-1.2.2.html": {
+  "fetched": "2026-10-16",
+  "licence": "may be freely copied provided it is not modified (stated on the page)",
+  "sha256": "2fe1bf40792df22ef8b8a5972a34c48e639969222e0bbae605aa9bb2ca85e9ab",
+  "size": 383078,
+  "url": "https://yaml.org/spec/1.2.2/"
+ }
+}
