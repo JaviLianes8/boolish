@@ -245,7 +245,7 @@ Progress:
 - [x] Version 1.0.1 and a dated CHANGELOG entry
 - [x] Mutants B27, B29 and B33 applied one at a time, against the 1.0.0 suite and the 1.0.1 suite
 - [x] Gates on a fresh clone, end-to-end module, upgrade from PyPI 1.0.0
-- [ ] PR open, trace guard CLEAN; merge and publish left to the maintainer
+- [x] PR #3 open, trace guard CLEAN; merge and publish left to the maintainer
 
 A mutation sweep after the 1.0.0 release reported three mutants alive, each for want of a
 contract on the text of an error message: B27 (the float preview built with `repr()`), B29
