@@ -39,8 +39,8 @@ def test_every_exported_name_resolves() -> None:
         assert hasattr(boolish, name)
 
 
-def test_version_is_one_zero_zero_everywhere() -> None:
-    assert boolish.__version__ == "1.0.0"
+def test_version_is_one_zero_one_everywhere() -> None:
+    assert boolish.__version__ == "1.0.1"
     if sys.version_info >= (3, 11):
         import tomllib
 

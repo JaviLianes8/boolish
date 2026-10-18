@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-18
+
+Tests only: the library behaves exactly as in 1.0.0 and its public surface is unchanged.
+
+- New contract tests pin the exact text of three error messages. A float is shown by the
+  value it holds, through the plain float `repr` (a subclass's own `__repr__`, `__str__`,
+  `__format__` or `__float__` never runs). The name of an environment variable is shown by
+  its plain text, cut to its first 32 characters. The words a `BoolRules` refuses, whether
+  on both sides or colliding once folded, are listed sorted, on the command line too.
+
 ## [1.0.0] - 2026-10-16
 
 The first stable release. The public surface is `strtobool`, `to_bool`, `is_truthy`,
