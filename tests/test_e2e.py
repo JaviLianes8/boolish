@@ -51,15 +51,15 @@ def _venv(where: Path) -> Path:
 
 
 def test_archives_hold_exactly_what_they_should(dist: Path) -> None:
-    wheel = next(dist.glob("boolish-1.0.0-py3-none-any.whl"))
+    wheel = next(dist.glob("boolish-1.0.1-py3-none-any.whl"))
     with zipfile.ZipFile(wheel) as archive:
         names = set(archive.namelist())
     package = {name for name in names if name.startswith("boolish/")}
     assert {"boolish/py.typed", "boolish/__init__.py", "boolish/__main__.py"} <= package
     assert all(name.endswith((".py", "py.typed")) for name in package)
-    assert "boolish-1.0.0.dist-info/licenses/LICENSE" in names
+    assert "boolish-1.0.1.dist-info/licenses/LICENSE" in names
     assert not [name for name in names if "test" in name or "script" in name]
-    sdist = next(dist.glob("boolish-1.0.0.tar.gz"))
+    sdist = next(dist.glob("boolish-1.0.1.tar.gz"))
     with tarfile.open(sdist) as archive:
         members = {name.split("/", 1)[1] for name in archive.getnames() if "/" in name}
     assert {"LICENSE", "README.md", "GUIDE.md", "CHANGELOG.md", "pyproject.toml"} <= members
@@ -81,7 +81,7 @@ def test_the_installed_wheel_works_for_a_consumer(dist: Path, tmp_path: Path) ->
         (["--quiet", "1"], 0, ""),
         (["--lenient", "--rules", "multilingual", "Sí"], 0, "true\n"),
         (["--true", "aye", "--false", "nay", "nay"], 1, "false\n"),
-        (["--version"], 0, "boolish 1.0.0\n"),
+        (["--version"], 0, "boolish 1.0.1\n"),
     ]:
         for command in ([cli], [python, "-m", "boolish"]):
             result = _run(*command, *argv, check=False)
@@ -106,6 +106,6 @@ def test_upgrade_in_place_from_pypi_0_1_0(dist: Path, tmp_path: Path) -> None:
         "import boolish; print(boolish.__version__, boolish.strtobool('enabled', None),"
         " boolish.strtobool('enabled', None, rules=boolish.CLASSIC))"
     )
-    assert _run(python, "-c", new).stdout.split() == ["1.0.0", "True", "None"]
+    assert _run(python, "-c", new).stdout.split() == ["1.0.1", "True", "None"]
     listed = _run(python, "-m", "pip", "show", "-f", "boolish").stdout
     assert "boolish/_cli.py" in listed.replace("\\", "/")
