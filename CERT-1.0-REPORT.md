@@ -236,3 +236,65 @@ integer path gives the same answer).
   merge subject; the squash merge of this PR does not touch them.
 - Source and test files stay within 200 lines (`tests/test_packaging.py`); this report,
   the GUIDE and the CHANGELOG are longer documents.
+
+## 1.0.1
+
+Progress:
+- [x] Branch `release/1.0.1` from `main` at 91f4345, the 1.0.0 release (the PyPI 1.0.0 sdist holds the same `src` and `tests`, compared 2026-10-18)
+- [x] Exact message contracts in `tests/test_contract_messages.py`
+- [x] Version 1.0.1 and a dated CHANGELOG entry
+- [x] Mutants B27, B29 and B33 applied one at a time, against the 1.0.0 suite and the 1.0.1 suite
+- [x] Gates on a fresh clone, end-to-end module, upgrade from PyPI 1.0.0
+- [ ] PR open, trace guard CLEAN; merge and publish left to the maintainer
+
+A mutation sweep after the 1.0.0 release reported three mutants alive, each for want of a
+contract on the text of an error message: B27 (the float preview built with `repr()`), B29
+(the variable name shown with `!r`, unbounded) and B33 (the clash listing not sorted).
+1.0.1 changes no library code: under `src` only the version line differs from 1.0.0. It
+adds `tests/test_contract_messages.py` (15 tests), which pins each message exactly:
+
+- a float is shown by the plain float `repr` of the value it holds: `2.5`, `-0.5`, `0.1`,
+  `1e+300`, `nan` and `-inf`, and `2.5` and `inf` for a float subclass whose `__repr__`,
+  `__str__`, `__format__` and `__float__` all answer something else;
+- the variable named in a `getenv_bool` error is cut to its first 32 characters (names of
+  32, 33 and 108 characters, read through `getenv_bool` itself) and shown by its plain text
+  when it is a `str` subclass with its own `__repr__`;
+- the words refused for being on both sides, and those that collide once folded, are listed
+  sorted (ten of each, given in reverse order), and the command prints its listing sorted too.
+
+### Mutants (2026-10-18)
+
+Each mutant was applied alone to a fresh copy of a fresh clone (the edit has to match
+exactly once), the whole suite run with no bytecode and no cache, and the copy thrown away;
+the end-to-end module skips without `BOOLISH_E2E=1`. Run on the laptop with Python 3.14.6
+and pytest 9.1.1. The 1.0.0 suite is `main` at 91f4345, the 1.0.1 suite `release/1.0.1` at
+14530bc. Every test named in the last column is in `tests/test_contract_messages.py`.
+
+| Id | Mutation | File | 1.0.0 suite | 1.0.1 suite | New tests that fail |
+| --- | --- | --- | --- | --- | --- |
+| B27 | float preview `repr(value)` instead of `float.__repr__(value)` | `_errors.py` | killed, 1 failed | killed, 3 failed | `test_a_float_is_shown_by_the_plain_repr_of_the_value_it_holds[sub]` and `[sub-inf]` |
+| B29 | `{variable!r}` instead of `{preview(variable)}` in the environment message | `_errors.py` | killed, 1 failed | killed, 4 failed | `test_the_variable_name_is_cut_to_its_first_32_characters[33]` and `[108]`, `test_the_variable_name_is_shown_by_its_plain_text` |
+| B33 | `list(words)[:10]` instead of `sorted(words)[:10]` in the clash listing | `_rules.py` | killed, 1 failed | killed, 4 failed | `test_words_on_both_sides_are_listed_sorted`, `test_words_that_collide_once_folded_are_listed_sorted`, `test_the_command_prints_the_sorted_listing` |
+| B27b | extra: float preview `repr(float(value))`, so a subclass's `__float__` runs | `_errors.py` | survived, 323 passed | killed, 2 failed | `test_a_float_is_shown_by_the_plain_repr_of_the_value_it_holds[sub]` and `[sub-inf]` |
+| none | the real code, before and after the mutants | | 323 passed, 18 skipped | 338 passed, 18 skipped | |
+
+Against the whole 1.0.0 suite the three named mutants did not survive here: each made
+exactly one test fail, the contract added for it after the first independent review
+(edadece, `tests/test_contract_strength.py`: `test_a_float_subclass_never_runs_its_own_repr`,
+`test_a_long_variable_name_is_cut_in_the_message` and
+`test_a_clash_lists_the_ten_smallest_words_in_order`), and that test fails again in the
+1.0.1 runs. Each message now also has exact contracts of its own, and B27b, a variant of
+B27 that the 1.0.0 suite lets through, is killed. B33 leaves the listing in the set's hash
+order, so it was also run under `PYTHONHASHSEED` 0 to 4 against the two contract files: the
+three new tests failed under every seed.
+
+### Gates and packaging (2026-10-18)
+
+On a fresh clone of `release/1.0.1` at 14530bc (laptop, Python 3.14.6, ruff 0.17.1, mypy
+2.4.0, pytest 9.1.1): `ruff format --check .`, `ruff check .`, `mypy --strict src` and
+`pytest` (338 passed, 18 skipped, the same skips as the 1.0.0 fresh-clone runs) each exit 0,
+and `mypy --strict src tests` is clean. `BOOLISH_E2E=1`: 3 passed (archives named 1.0.1,
+the installed console script and `python -m boolish` answering `boolish 1.0.1`, the upgrade
+from PyPI 0.1.0). The PyPI 1.0.0 wheel upgraded in place to the built 1.0.1 wheel: `pip
+check` clean, the same messages before and after, `boolish 1.0.1`. The interpreter matrix
+was not re-run: only the version line changed under `src`.
